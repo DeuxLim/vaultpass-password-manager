@@ -15,7 +15,7 @@ VaultPass will evolve from a web MVP into a RoboForm-class password manager with
 ## 2. Product Goals
 1. Build a reliable, secure core before adding advanced features.
 2. Deliver a premium, minimal UI/UX across desktop and mobile.
-3. Ship browser extension MVP early enough to validate autofill workflow.
+3. Ship browser extension MVP after web core/security features are stable.
 4. Move toward zero-knowledge architecture as a strategic security milestone.
 5. Reach launch readiness with support, billing, and operational maturity.
 
@@ -37,7 +37,7 @@ VaultPass will evolve from a web MVP into a RoboForm-class password manager with
 - Active sessions management implemented (list sessions + revoke single/others).
 - TOTP 2FA implemented (setup, enable, login challenge, recovery codes, disable).
 - Landing/login/dashboard visual redesign in progress.
-- Not yet complete: extension codebase, zero-knowledge upgrade and later-phase competitive features.
+- Not yet complete: zero-knowledge upgrade, competitive web features, and extension codebase (intentionally scheduled last).
 
 ---
 
@@ -75,8 +75,8 @@ Exit criteria:
 Objective: Reach daily-use viability for solo users.
 
 Scope:
-- ⬜ Password generator with policy options.
-- ⬜ Strength meter for stored/generated passwords.
+- ✅ Password generator with policy options.
+- ✅ Strength meter for stored/generated passwords.
 - ✅ Vault item history/versioning and restore.
 - ⬜ Secure notes item type.
 - ⬜ Favorites and foldering/tags.
@@ -98,8 +98,74 @@ Exit criteria:
 
 ---
 
-### Phase 3: Browser Extension MVP (Chrome)
-Objective: Ship first extension with credential save/fill loop.
+### Phase 3: Security & Trust Upgrade (Web Core)
+Objective: Elevate security posture to market-competitive standards before extension.
+
+Scope:
+- Zero-knowledge migration plan and implementation steps.
+- ✅ Optional TOTP 2FA (enroll, verify, recovery codes, disable flow).
+- ✅ Device/session management UI with remote logout of other sessions.
+- ⬜ Security events and login alerting page.
+- ⬜ Security review checklist aligned to OWASP ASVS subset.
+
+Exit criteria:
+- ⬜ Client-side encryption key flow defined and implemented for new vault records.
+- ✅ 2FA available for user accounts.
+- ✅ Users can view active sessions and revoke any session except current one.
+- ⬜ Security checklist completed and signed off.
+
+---
+
+### Phase 4: Competitive Features (RoboForm-Class Web)
+Objective: Add web power-user capabilities before extension buildout.
+
+Scope:
+- Shared vaults (family/team), invitations, permissions.
+- Emergency access workflow.
+- Password health dashboard (weak/reused/old).
+- Breach monitoring integration (optional external API).
+- Identity and payment profile autofill (web forms).
+- Passkeys/WebAuthn support roadmap kickoff.
+
+Exit criteria:
+- Team/family sharing flow fully functional.
+- Health dashboard actionable with remediation suggestions.
+
+---
+
+### Phase 5: Mobile Product Expansion
+Objective: Deliver premium mobile usage experience.
+
+Scope:
+- Progressive Web App enhancements.
+- Offline-friendly encrypted cache strategy.
+- Push notifications for security events (if infra supports it).
+- Native wrapper feasibility (future autofill API support).
+
+Exit criteria:
+- PWA install and core flows validated on iOS/Android browsers.
+- Mobile performance and accessibility targets met.
+
+---
+
+### Phase 6: Launch Readiness & Growth
+Objective: Commercial readiness and operational maturity.
+
+Scope:
+- Pricing tiers and billing integration.
+- Onboarding, email lifecycle, support workflows.
+- Product analytics (privacy-preserving).
+- Incident response runbooks and backups.
+- Release management and changelog discipline.
+
+Exit criteria:
+- Launch checklist complete.
+- Support and reliability SLAs defined.
+
+---
+
+### Phase 7: Browser Extension MVP (Chrome)
+Objective: Ship first extension after web core/API contracts are stable.
 
 Scope:
 - Manifest V3 extension scaffold.
@@ -120,7 +186,7 @@ Exit criteria:
 
 ---
 
-### Phase 4: Extension Maturity + Cross-Browser
+### Phase 8: Extension Maturity + Cross-Browser
 Objective: Improve autofill reliability and expand browser support.
 
 Scope:
@@ -133,72 +199,6 @@ Scope:
 Exit criteria:
 - Cross-browser build available.
 - Autofill pass rate target >= 90% on internal test corpus.
-
----
-
-### Phase 5: Security & Trust Upgrade
-Objective: Elevate security posture to market-competitive standards.
-
-Scope:
-- Zero-knowledge migration plan and implementation steps.
-- Optional TOTP 2FA (enroll, verify, recovery codes, disable flow).
-- Device/session management UI with remote logout of other sessions.
-- Security events and login alerting.
-- Security review checklist aligned to OWASP ASVS subset.
-
-Exit criteria:
-- Client-side encryption key flow defined and implemented for new vault records.
-- 2FA available for user accounts.
-- Users can view active sessions and revoke any session except current one.
-- Security checklist completed and signed off.
-
----
-
-### Phase 6: Competitive Features (RoboForm-Class)
-Objective: Add collaboration and power-user capabilities.
-
-Scope:
-- Shared vaults (family/team), invitations, permissions.
-- Emergency access workflow.
-- Password health dashboard (weak/reused/old).
-- Breach monitoring integration (optional external API).
-- Identity and payment profile autofill.
-- Passkeys/WebAuthn support roadmap kickoff.
-
-Exit criteria:
-- Team/family sharing flow fully functional.
-- Health dashboard actionable with remediation suggestions.
-
----
-
-### Phase 7: Mobile Product Expansion
-Objective: Deliver premium mobile usage experience.
-
-Scope:
-- Progressive Web App enhancements.
-- Offline-friendly encrypted cache strategy.
-- Push notifications for security events (if infra supports it).
-- Native wrapper feasibility (future autofill API support).
-
-Exit criteria:
-- PWA install and core flows validated on iOS/Android browsers.
-- Mobile performance and accessibility targets met.
-
----
-
-### Phase 8: Launch Readiness & Growth
-Objective: Commercial readiness and operational maturity.
-
-Scope:
-- Pricing tiers and billing integration.
-- Onboarding, email lifecycle, support workflows.
-- Product analytics (privacy-preserving).
-- Incident response runbooks and backups.
-- Release management and changelog discipline.
-
-Exit criteria:
-- Launch checklist complete.
-- Support and reliability SLAs defined.
 
 ---
 
@@ -230,12 +230,12 @@ Acceptance:
 ### Sprint 3
 Theme: Generator + health primitives
 Tasks:
-- Password generator UI component and API/storage integration.
-- Strength scoring utility.
-- Add "Generate and save" flow in modal.
+- ✅ Password generator UI component and API/storage integration.
+- ✅ Strength scoring utility.
+- ✅ Add "Generate and save" flow in modal.
 Acceptance:
-- Generated passwords can be saved in one flow.
-- Strength shown for generated and stored items.
+- ✅ Generated passwords can be saved in one flow.
+- ✅ Strength shown for generated and stored items.
 
 ### Sprint 4
 Theme: Import/export and backup
@@ -247,25 +247,26 @@ Acceptance:
 - Successful export/import roundtrip on test fixtures.
 
 ### Sprint 5
-Theme: Extension scaffold
+Theme: Security trust upgrade (web)
 Tasks:
-- Setup extension repo/folder (`extension/`).
-- MV3 manifest + popup shell.
-- Auth/session handshake with backend.
+- Zero-knowledge architecture decision doc + key management flow.
+- Security events page (login/session/critical vault actions).
+- ASVS-aligned checklist draft and gap closure.
 Acceptance:
-- Extension popup can list vault entries for logged-in user.
+- Zero-knowledge migration plan approved and tracked.
+- Security event visibility available to end users.
 
 ### Sprint 6
-Theme: Extension fill/save loop
+Theme: Web competitive primitives
 Tasks:
-- Content script form detection and autofill.
-- Save prompt after login submission.
-- Domain matching v1.
+- Password health dashboard (weak/reused/old).
+- Tags/folders/favorites.
+- Search enhancements.
 Acceptance:
-- Save + autofill works on defined test matrix.
+- Power-user web vault workflows are usable daily.
 
 ### Sprint 7+
-Continue with Phase 4 onward (cross-browser, security upgrade, sharing, launch work).
+Continue with web-first phases (sharing, mobile, launch), then extension phases.
 
 ### Sprint 7
 Theme: Vault history + restore
@@ -287,6 +288,42 @@ Tasks:
 Acceptance:
 - ✅ 2FA-protected login works end-to-end.
 - ✅ User can revoke other sessions from account security settings.
+
+### Sprint 9
+Theme: Mobile + PWA hardening
+Tasks:
+- PWA installability + app manifest polish.
+- Mobile performance pass and accessibility pass.
+- Offline-safe UX boundaries for sensitive data.
+Acceptance:
+- Mobile KPI and accessibility targets met.
+
+### Sprint 10
+Theme: Launch readiness foundations
+Tasks:
+- Billing/onboarding prep.
+- Support workflow and incident runbooks.
+- Analytics/privacy instrumentation baseline.
+Acceptance:
+- Launch-readiness checklist in place.
+
+### Sprint 11
+Theme: Extension MVP scaffold
+Tasks:
+- Setup extension repo/folder (`extension/`).
+- MV3 manifest + popup shell.
+- Auth/session handshake with backend.
+Acceptance:
+- Extension popup can list vault entries for logged-in user.
+
+### Sprint 12
+Theme: Extension fill/save loop
+Tasks:
+- Content script form detection and autofill.
+- Save prompt after login submission.
+- Domain matching v1.
+Acceptance:
+- Save + autofill works on defined test matrix.
 
 ---
 
@@ -340,6 +377,8 @@ Every phase must validate:
 ---
 
 ## 9. Browser Extension Milestones
+Start after Phase 6 exit criteria are met (web core/security/launch readiness gate).
+
 1. MVP Chrome extension (save/fill/generate).
 2. Stabilize heuristic autofill.
 3. Multi-account support in popup.
@@ -350,7 +389,7 @@ Every phase must validate:
 
 ## 10. Risk Register
 - Security risk: server-side plaintext exposure during processing.
-  Mitigation: plan zero-knowledge migration in Phase 5.
+  Mitigation: plan zero-knowledge migration in Phase 3.
 - UX risk: desktop-centric table UI harms mobile adoption.
   Mitigation: mobile card view by Sprint 2.
 - Autofill complexity risk across websites.

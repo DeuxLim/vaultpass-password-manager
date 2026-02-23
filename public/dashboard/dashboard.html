@@ -66,6 +66,27 @@
 
       <label for="passwordInput">Password</label>
       <input type="text" id="passwordInput" placeholder="Enter password" required>
+      <div class="password-health" aria-live="polite">
+        <div class="strength-line">
+          <span id="passwordStrengthLabel">Strength: —</span>
+          <button type="button" id="generatePasswordBtn" class="action-neutral">Generate</button>
+        </div>
+        <div class="strength-meter" aria-hidden="true">
+          <span id="passwordStrengthFill"></span>
+        </div>
+      </div>
+      <details id="generatorPanel" class="generator-panel">
+        <summary>Password generator options</summary>
+        <div class="generator-grid">
+          <label for="generatorLength">Length</label>
+          <input type="range" id="generatorLength" min="8" max="48" value="16">
+          <span id="generatorLengthValue">16</span>
+          <label class="generator-option"><input type="checkbox" id="generatorUpper" checked> Uppercase (A-Z)</label>
+          <label class="generator-option"><input type="checkbox" id="generatorLower" checked> Lowercase (a-z)</label>
+          <label class="generator-option"><input type="checkbox" id="generatorNumbers" checked> Numbers (0-9)</label>
+          <label class="generator-option"><input type="checkbox" id="generatorSymbols" checked> Symbols (!@#)</label>
+        </div>
+      </details>
 
       <label for="notesInput">Notes</label>
       <textarea id="notesInput" rows="3" placeholder="Optional notes"></textarea>

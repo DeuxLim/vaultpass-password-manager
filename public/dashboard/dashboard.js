@@ -37,6 +37,15 @@ const siteInput = document.getElementById('siteInput');
 const usernameInput = document.getElementById('usernameInput');
 const passwordInput = document.getElementById('passwordInput');
 const notesInput = document.getElementById('notesInput');
+const passwordStrengthLabel = document.getElementById('passwordStrengthLabel');
+const passwordStrengthFill = document.getElementById('passwordStrengthFill');
+const generatePasswordBtn = document.getElementById('generatePasswordBtn');
+const generatorLength = document.getElementById('generatorLength');
+const generatorLengthValue = document.getElementById('generatorLengthValue');
+const generatorUpper = document.getElementById('generatorUpper');
+const generatorLower = document.getElementById('generatorLower');
+const generatorNumbers = document.getElementById('generatorNumbers');
+const generatorSymbols = document.getElementById('generatorSymbols');
 
 let items = [];
 let historyItemId = 0;
@@ -100,6 +109,78 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function scorePassword(password) {
+  const value = String(password || '');
+  if (!value) return 0;
+
+  let score = Math.min(40, value.length * 3);
+  if (/[a-z]/.test(value)) score += 12;
+  if (/[A-Z]/.test(value)) score += 12;
+  if (/\d/.test(value)) score += 12;
+  if (/[^A-Za-z0-9]/.test(value)) score += 14;
+  if (/(.)\1{2,}/.test(value)) score -= 10;
+  if (/^\d+$/.test(value) || /^[A-Za-z]+$/.test(value)) score -= 8;
+
+  return Math.max(0, Math.min(100, score));
+}
+
+function strengthLevel(score) {
+  if (score >= 80) return { label: 'Strong', tone: '#1e5a33' };
+  if (score >= 60) return { label: 'Good', tone: '#155eef' };
+  if (score >= 40) return { label: 'Fair', tone: '#b54708' };
+  return { label: 'Weak', tone: '#b42318' };
+}
+
+function updatePasswordStrength() {
+  if (!passwordStrengthLabel || !passwordStrengthFill) return;
+
+  const score = scorePassword(passwordInput?.value || '');
+  if (score === 0) {
+    passwordStrengthLabel.textContent = 'Strength: —';
+    passwordStrengthFill.style.width = '0%';
+    passwordStrengthFill.style.background = '#c8ccd5';
+    return;
+  }
+
+  const level = strengthLevel(score);
+  passwordStrengthLabel.textContent = `Strength: ${level.label} (${score}/100)`;
+  passwordStrengthLabel.style.color = level.tone;
+  passwordStrengthFill.style.width = `${score}%`;
+  passwordStrengthFill.style.background = level.tone;
+}
+
+function generatorConfig() {
+  return {
+    length: Number(generatorLength?.value || 16),
+    upper: Boolean(generatorUpper?.checked),
+    lower: Boolean(generatorLower?.checked),
+    numbers: Boolean(generatorNumbers?.checked),
+    symbols: Boolean(generatorSymbols?.checked),
+  };
+}
+
+function generatePassword() {
+  const cfg = generatorConfig();
+  let chars = '';
+  if (cfg.upper) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (cfg.lower) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (cfg.numbers) chars += '0123456789';
+  if (cfg.symbols) chars += '!@#$%^&*()-_=+[]{}:;,.?';
+
+  if (!chars) {
+    throw new Error('Select at least one character set for generation.');
+  }
+
+  const bytes = new Uint32Array(cfg.length);
+  window.crypto.getRandomValues(bytes);
+  let output = '';
+  for (let i = 0; i < cfg.length; i += 1) {
+    output += chars[bytes[i] % chars.length];
+  }
+
+  return output;
 }
 
 function closeHistoryModal() {
@@ -382,6 +463,12 @@ function openModal(item = null, triggerElement = null) {
     usernameInput.value = '';
     passwordInput.value = '';
     notesInput.value = '';
+    if (generatorLength) generatorLength.value = '16';
+    if (generatorLengthValue) generatorLengthValue.textContent = '16';
+    if (generatorUpper) generatorUpper.checked = true;
+    if (generatorLower) generatorLower.checked = true;
+    if (generatorNumbers) generatorNumbers.checked = true;
+    if (generatorSymbols) generatorSymbols.checked = true;
   } else {
     modalTitle.textContent = 'Edit Password';
     vaultId.value = item.id;
@@ -392,6 +479,7 @@ function openModal(item = null, triggerElement = null) {
   }
 
   modal.showModal();
+  updatePasswordStrength();
   window.setTimeout(() => {
     siteInput.focus();
   }, 0);
@@ -430,6 +518,22 @@ cancelBtn?.addEventListener('click', closeModal);
 historyCloseBtn?.addEventListener('click', closeHistoryModal);
 sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
 searchInput?.addEventListener('input', renderTable);
+passwordInput?.addEventListener('input', updatePasswordStrength);
+generatorLength?.addEventListener('input', () => {
+  if (generatorLengthValue) {
+    generatorLengthValue.textContent = String(generatorLength.value);
+  }
+});
+generatePasswordBtn?.addEventListener('click', () => {
+  try {
+    const generated = generatePassword();
+    passwordInput.value = generated;
+    updatePasswordStrength();
+    showToast('Generated secure password.');
+  } catch (error) {
+    modalError.textContent = error.message || 'Unable to generate password.';
+  }
+});
 twofaSetupBtn?.addEventListener('click', async () => {
   try {
     await startTwoFactorSetup();
