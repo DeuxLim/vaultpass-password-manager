@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 require_method('POST');
+require_csrf();
 $userId = require_auth();
 $body = request_body();
 
@@ -27,4 +28,7 @@ $stmt->execute([
     'notes_enc' => encrypt_value($notes),
 ]);
 
-json_response(['ok' => true, 'id' => (int)$pdo->lastInsertId()], 201);
+$newId = (int)$pdo->lastInsertId();
+audit_log('vault.create', $userId, ['vault_item_id' => $newId, 'site' => $site]);
+
+json_response(['ok' => true, 'id' => $newId], 201);

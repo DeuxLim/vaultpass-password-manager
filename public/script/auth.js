@@ -2,6 +2,8 @@ const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
 
 const requestApi = window.VaultApi.apiRequest;
+const initCsrfApi = window.VaultApi.initCsrf;
+const csrfReady = initCsrfApi('../api/auth/csrf.php');
 
 function setLoginError(message) {
   const emailError = document.getElementById('log-error-email');
@@ -25,9 +27,17 @@ loginForm?.addEventListener('submit', async (e) => {
   const password = document.getElementById('log-pass')?.value || '';
 
   try {
+    await csrfReady;
     await requestApi('../api/auth/login.php', 'POST', { email, password });
     window.location.href = '../dashboard/dashboard.html';
   } catch (error) {
+    if (error?.status === 429) {
+      const retryAfter = Number(error?.payload?.retry_after || 0);
+      if (retryAfter > 0) {
+        setLoginError(`Too many attempts. Try again in ${retryAfter} seconds.`);
+        return;
+      }
+    }
     setLoginError(error.message);
   }
 });
@@ -47,9 +57,17 @@ registerForm?.addEventListener('submit', async (e) => {
   }
 
   try {
+    await csrfReady;
     await requestApi('../api/auth/register.php', 'POST', { name, email, password });
     window.location.href = '../dashboard/dashboard.html';
   } catch (error) {
+    if (error?.status === 429) {
+      const retryAfter = Number(error?.payload?.retry_after || 0);
+      if (retryAfter > 0) {
+        setRegisterError(`Too many attempts. Try again in ${retryAfter} seconds.`);
+        return;
+      }
+    }
     setRegisterError(error.message);
   }
 });

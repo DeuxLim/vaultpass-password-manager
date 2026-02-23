@@ -5,11 +5,20 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 require_method('POST');
+require_csrf();
 
 $body = request_body();
 $email = strtolower(trim((string)($body['email'] ?? '')));
 $password = (string)($body['password'] ?? '');
 $name = trim((string)($body['name'] ?? ''));
+
+$ipWindow = rate_limit_int_env('REGISTER_RATE_LIMIT_WINDOW', 300);
+$ipMax = rate_limit_int_env('REGISTER_RATE_LIMIT_MAX', 10);
+$emailWindow = rate_limit_int_env('REGISTER_EMAIL_RATE_LIMIT_WINDOW', 900);
+$emailMax = rate_limit_int_env('REGISTER_EMAIL_RATE_LIMIT_MAX', 3);
+
+enforce_rate_limit('auth:register:ip:' . request_ip(), $ipMax, $ipWindow);
+enforce_rate_limit('auth:register:email:' . $email, $emailMax, $emailWindow);
 
 if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
     json_response(['ok' => false, 'error' => 'Invalid email'], 422);
@@ -41,8 +50,10 @@ $insertStmt->execute([
 
 $userId = (int)$pdo->lastInsertId();
 session_regenerate_id(true);
+csrf_token();
 $_SESSION['user_id'] = $userId;
 $_SESSION['user_name'] = $name;
+audit_log('auth.register.success', $userId, ['email_sha256' => hash('sha256', $email)]);
 
 json_response([
     'ok' => true,

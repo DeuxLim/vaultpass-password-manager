@@ -21,3 +21,34 @@ CREATE TABLE IF NOT EXISTS vault_items (
   INDEX idx_vault_user (user_id),
   CONSTRAINT fk_vault_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
+
+CREATE TABLE IF NOT EXISTS vault_item_versions (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  vault_item_id INT UNSIGNED NOT NULL,
+  user_id INT UNSIGNED NOT NULL,
+  site VARCHAR(191) NOT NULL,
+  username_enc TEXT NOT NULL,
+  password_enc TEXT NOT NULL,
+  notes_enc TEXT NOT NULL,
+  source VARCHAR(40) NOT NULL DEFAULT 'update',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_versions_item (vault_item_id),
+  INDEX idx_versions_user (user_id),
+  INDEX idx_versions_created_at (created_at),
+  CONSTRAINT fk_versions_item FOREIGN KEY (vault_item_id) REFERENCES vault_items(id) ON DELETE CASCADE,
+  CONSTRAINT fk_versions_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS audit_logs (
+  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  user_id INT UNSIGNED NULL,
+  event_type VARCHAR(120) NOT NULL,
+  ip_address VARCHAR(45) NOT NULL,
+  user_agent VARCHAR(500) NOT NULL,
+  meta_json JSON NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  INDEX idx_audit_user (user_id),
+  INDEX idx_audit_event (event_type),
+  INDEX idx_audit_created_at (created_at),
+  CONSTRAINT fk_audit_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL
+);

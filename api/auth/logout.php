@@ -5,6 +5,8 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 require_method('POST');
+require_csrf();
+$userId = current_user_id();
 
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
@@ -12,5 +14,6 @@ if (ini_get('session.use_cookies')) {
     setcookie(session_name(), '', time() - 42000, $params['path'], $params['domain'], $params['secure'], $params['httponly']);
 }
 session_destroy();
+audit_log('auth.logout', $userId);
 
 json_response(['ok' => true]);

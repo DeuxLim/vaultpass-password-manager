@@ -30,34 +30,41 @@ VaultPass will evolve from a web MVP into a RoboForm-class password manager with
 - Vanilla stack in place: PHP + MySQL + HTML/CSS/JS.
 - Public/private directory split completed (`public/` web root).
 - Core auth + vault CRUD endpoints implemented.
+- CSRF protection + auth rate limiting implemented.
+- Audit logging implemented for auth and vault mutations.
+- Vault item version history + restore flow implemented (web dashboard + API).
 - Landing/login/dashboard visual redesign in progress.
-- Not yet complete: CSRF protection, security hardening, extension codebase.
+- Not yet complete: extension codebase, advanced security controls (2FA/session UI).
 
 ---
 
 ## 5. Phase Plan
 
+Status marker:
+- `✅` done
+- `⬜` pending
+
 ### Phase 1: Foundation Hardening (Web Core)
 Objective: Stabilize and secure the current MVP architecture.
 
 Scope:
-- CSRF token flow for all mutating requests.
-- Session hardening (secure cookie settings, timeout policy, rotation policy).
-- Rate limiting for auth endpoints.
-- Input validation normalization and centralized error contracts.
-- Shared frontend API utility and request error handling standards.
-- Baseline automated checks (lint/static checks + smoke test script).
+- ✅ CSRF token flow for all mutating requests.
+- ✅ Session hardening (secure cookie settings, timeout policy, rotation policy).
+- ✅ Rate limiting for auth endpoints.
+- ⬜ Input validation normalization and centralized error contracts.
+- ✅ Shared frontend API utility and request error handling standards.
+- ⬜ Baseline automated checks (lint/static checks + smoke test script).
 
 Mobile requirements:
-- Fully responsive login + dashboard.
-- Touch targets >= 44px.
-- Table usability fallback on narrow screens.
+- ✅ Fully responsive login + dashboard.
+- ✅ Touch targets >= 44px.
+- ✅ Table usability fallback on narrow screens.
 
 Exit criteria:
-- All mutating endpoints protected by CSRF.
-- Auth endpoints rate-limited.
-- Mobile QA pass on key views (320/375/768 widths).
-- No critical security findings in internal checklist.
+- ✅ All mutating endpoints protected by CSRF.
+- ✅ Auth endpoints rate-limited.
+- ✅ Mobile QA pass on key views (320/375/768 widths).
+- ⬜ No critical security findings in internal checklist.
 
 ---
 
@@ -65,12 +72,13 @@ Exit criteria:
 Objective: Reach daily-use viability for solo users.
 
 Scope:
-- Password generator with policy options.
-- Strength meter for stored/generated passwords.
-- Secure notes item type.
-- Favorites and foldering/tags.
-- Search enhancements (site, username, tags, notes).
-- Import/export:
+- ⬜ Password generator with policy options.
+- ⬜ Strength meter for stored/generated passwords.
+- ✅ Vault item history/versioning and restore.
+- ⬜ Secure notes item type.
+- ⬜ Favorites and foldering/tags.
+- ⬜ Search enhancements (site, username, tags, notes).
+- ⬜ Import/export:
   - CSV import (common manager formats)
   - encrypted backup export/import
 
@@ -80,9 +88,10 @@ Mobile requirements:
 - Sticky key actions (Add, Search) in thumb-friendly zones.
 
 Exit criteria:
-- Users can generate/store/manage credentials end-to-end.
-- Import/export roundtrip tested.
-- Mobile flows complete without desktop dependency.
+- ⬜ Users can generate/store/manage credentials end-to-end.
+- ✅ Users can restore previous versions of an edited vault item.
+- ⬜ Import/export roundtrip tested.
+- ⬜ Mobile flows complete without desktop dependency.
 
 ---
 
@@ -129,14 +138,15 @@ Objective: Elevate security posture to market-competitive standards.
 
 Scope:
 - Zero-knowledge migration plan and implementation steps.
-- Optional TOTP 2FA.
-- Device/session management UI.
+- Optional TOTP 2FA (enroll, verify, recovery codes, disable flow).
+- Device/session management UI with remote logout of other sessions.
 - Security events and login alerting.
 - Security review checklist aligned to OWASP ASVS subset.
 
 Exit criteria:
 - Client-side encryption key flow defined and implemented for new vault records.
 - 2FA available for user accounts.
+- Users can view active sessions and revoke any session except current one.
 - Security checklist completed and signed off.
 
 ---
@@ -194,25 +204,25 @@ Exit criteria:
 ### Sprint 1
 Theme: Security baseline + architecture hygiene
 Tasks:
-- Implement CSRF token generation endpoint + validation middleware.
-- Add rate limiter for `/api/auth/login.php` and `/api/auth/register.php`.
-- Centralize API error response schema.
-- Add session expiration strategy and regenerate on privilege changes.
-- Add `docs/security-checklist.md` initial draft.
+- ✅ Implement CSRF token generation endpoint + validation middleware.
+- ✅ Add rate limiter for `/api/auth/login.php` and `/api/auth/register.php`.
+- ⬜ Centralize API error response schema.
+- ✅ Add session expiration strategy and regenerate on privilege changes.
+- ⬜ Add `docs/security-checklist.md` initial draft.
 Acceptance:
-- CSRF validated on create/update/delete/logout/register/login.
-- Repeated failed login attempts throttle as expected.
+- ✅ CSRF validated on create/update/delete/logout/register/login.
+- ✅ Repeated failed login attempts throttle as expected.
 
 ### Sprint 2
 Theme: Dashboard UX robustness
 Tasks:
-- Mobile card view for vault entries.
-- Inline validation and form state messages.
-- Better empty states and success toasts.
-- Accessibility pass: keyboard nav + focus rings + ARIA labels.
+- ✅ Mobile card view for vault entries.
+- ✅ Inline validation and form state messages.
+- ✅ Better empty states and success toasts.
+- ✅ Accessibility pass: keyboard nav + focus rings + ARIA labels.
 Acceptance:
-- Dashboard usable at 375px width without horizontal scroll.
-- Keyboard-only path works for add/edit/delete.
+- ✅ Dashboard usable at 375px width without horizontal scroll.
+- ✅ Keyboard-only path works for add/edit/delete.
 
 ### Sprint 3
 Theme: Generator + health primitives
@@ -253,6 +263,26 @@ Acceptance:
 
 ### Sprint 7+
 Continue with Phase 4 onward (cross-browser, security upgrade, sharing, launch work).
+
+### Sprint 7
+Theme: Vault history + restore
+Tasks:
+- ✅ Add `vault_item_versions` schema and write-on-update strategy.
+- ✅ Build history API (`list versions`, `restore version`) with audit events.
+- ✅ Add history drawer/modal in dashboard item details.
+Acceptance:
+- ✅ A user can view prior versions and restore one with confirmation.
+- ✅ Restore action is logged and visible in audit trail.
+
+### Sprint 8
+Theme: Account security controls
+Tasks:
+- Add TOTP 2FA setup/verification/recovery-code flows.
+- Add active session list API and UI.
+- Add remote logout endpoint for selected session(s).
+Acceptance:
+- 2FA-protected login works end-to-end.
+- User can revoke other sessions from account security settings.
 
 ---
 
@@ -331,4 +361,3 @@ Every phase must validate:
 - Sprint review/demo: biweekly.
 - Security review checkpoint: once per phase.
 - This file is the source of truth for product phases.
-

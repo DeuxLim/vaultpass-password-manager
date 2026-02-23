@@ -49,6 +49,16 @@ DB_PASS=your_mysql_password
 APP_KEY=your_long_random_secret
 SESSION_COOKIE_SECURE=false
 SESSION_SAMESITE=Lax
+
+# Optional rate-limit tuning
+LOGIN_RATE_LIMIT_WINDOW=60
+LOGIN_RATE_LIMIT_MAX=20
+LOGIN_EMAIL_RATE_LIMIT_WINDOW=300
+LOGIN_EMAIL_RATE_LIMIT_MAX=8
+REGISTER_RATE_LIMIT_WINDOW=300
+REGISTER_RATE_LIMIT_MAX=10
+REGISTER_EMAIL_RATE_LIMIT_WINDOW=900
+REGISTER_EMAIL_RATE_LIMIT_MAX=3
 ```
 
 `APP_KEY` must be a long random value.
@@ -65,6 +75,18 @@ openssl rand -base64 48
 
 ```bash
 mysql -u root -p < sql/schema.sql
+```
+
+If you already created the database before audit logging was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/001_add_audit_logs.sql
+```
+
+If you already created the database before vault history/versioning was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/002_add_vault_item_versions.sql
 ```
 
 2. Run app:
@@ -84,3 +106,4 @@ php -S localhost:8000 -t public
 - Vault fields are encrypted at rest with AES-256-GCM using `APP_KEY`.
 - App fails fast if `APP_KEY` is left as default placeholder.
 - Session cookie settings are configurable via env vars.
+- Authentication and vault mutations are written to `audit_logs`.

@@ -5,6 +5,7 @@ declare(strict_types=1);
 require __DIR__ . '/../bootstrap.php';
 
 require_method('POST');
+require_csrf();
 $userId = require_auth();
 $body = request_body();
 $id = (int)($body['id'] ?? 0);
@@ -23,5 +24,7 @@ $stmt->execute([
 if ($stmt->rowCount() === 0) {
     json_response(['ok' => false, 'error' => 'Record not found'], 404);
 }
+
+audit_log('vault.delete', $userId, ['vault_item_id' => $id]);
 
 json_response(['ok' => true]);
