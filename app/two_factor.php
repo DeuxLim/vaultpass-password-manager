@@ -182,6 +182,10 @@ function two_factor_provisioning_uri(string $secret, string $accountLabel): stri
 
 function get_user_two_factor(int $userId): ?array
 {
+    if (!two_factor_storage_available()) {
+        return null;
+    }
+
     $pdo = db();
     $stmt = $pdo->prepare(
         'SELECT user_id, secret_enc, recovery_codes_json, enabled_at, updated_at
@@ -214,6 +218,10 @@ function is_two_factor_enabled(int $userId): bool
 
 function save_user_two_factor(int $userId, string $secret, array $recoveryHashes): void
 {
+    if (!two_factor_storage_available()) {
+        throw new RuntimeException('Two-factor storage unavailable');
+    }
+
     $pdo = db();
     $stmt = $pdo->prepare(
         'INSERT INTO user_two_factor (user_id, secret_enc, recovery_codes_json, enabled_at)
@@ -232,6 +240,10 @@ function save_user_two_factor(int $userId, string $secret, array $recoveryHashes
 
 function update_user_recovery_hashes(int $userId, array $recoveryHashes): void
 {
+    if (!two_factor_storage_available()) {
+        throw new RuntimeException('Two-factor storage unavailable');
+    }
+
     $pdo = db();
     $stmt = $pdo->prepare(
         'UPDATE user_two_factor
@@ -248,8 +260,36 @@ function update_user_recovery_hashes(int $userId, array $recoveryHashes): void
 
 function disable_user_two_factor(int $userId): void
 {
+    if (!two_factor_storage_available()) {
+        throw new RuntimeException('Two-factor storage unavailable');
+    }
+
     $pdo = db();
     $stmt = $pdo->prepare('DELETE FROM user_two_factor WHERE user_id = :user_id LIMIT 1');
     $stmt->execute(['user_id' => $userId]);
 }
 
+function two_factor_storage_available(): bool
+{
+    static $available = null;
+    if (is_bool($available)) {
+        return $available;
+    }
+
+    try {
+        $pdo = db();
+        $stmt = $pdo->query('SELECT 1 FROM user_two_factor LIMIT 1');
+        if ($stmt !== false) {
+            $stmt->fetch();
+        }
+        $available = true;
+    } catch (PDOException $e) {
+        if ((string)$e->getCode() === '42S02') {
+            $available = false;
+        } else {
+            throw $e;
+        }
+    }
+
+    return $available;
+}

@@ -11,15 +11,26 @@ $limitRaw = (int)($_GET['limit'] ?? 50);
 $limit = max(1, min($limitRaw, 200));
 
 $pdo = db();
-$stmt = $pdo->prepare(
-    'SELECT id, event_type, ip_address, user_agent, created_at, meta_json
-     FROM audit_logs
-     WHERE user_id = :user_id
-     ORDER BY id DESC
-     LIMIT ' . $limit
-);
-$stmt->execute(['user_id' => $userId]);
-$rows = $stmt->fetchAll();
+$rows = [];
+$available = true;
+
+try {
+    $stmt = $pdo->prepare(
+        'SELECT id, event_type, ip_address, user_agent, created_at, meta_json
+         FROM audit_logs
+         WHERE user_id = :user_id
+         ORDER BY id DESC
+         LIMIT ' . $limit
+    );
+    $stmt->execute(['user_id' => $userId]);
+    $rows = $stmt->fetchAll();
+} catch (PDOException $e) {
+    if ((string)$e->getCode() === '42S02') {
+        $available = false;
+    } else {
+        throw $e;
+    }
+}
 
 $events = array_map(static function (array $row): array {
     $meta = json_decode((string)($row['meta_json'] ?? ''), true);
@@ -36,4 +47,6 @@ $events = array_map(static function (array $row): array {
 json_response([
     'ok' => true,
     'events' => $events,
+    'available' => $available,
+    'warning' => $available ? null : 'Security events storage unavailable. Run migration 001.',
 ]);

@@ -25,20 +25,32 @@ if (!$item) {
     json_response(['ok' => false, 'error' => 'Record not found'], 404);
 }
 
-$stmt = $pdo->prepare(
-    'SELECT id, vault_item_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source, created_at
-     FROM vault_item_versions
-     WHERE vault_item_id = :item_id AND user_id = :user_id
-     ORDER BY created_at DESC, id DESC'
-);
 try {
+    $stmt = $pdo->prepare(
+        'SELECT id, vault_item_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source, created_at
+         FROM vault_item_versions
+         WHERE vault_item_id = :item_id AND user_id = :user_id
+         ORDER BY created_at DESC, id DESC'
+    );
     $stmt->execute([
         'item_id' => $itemId,
         'user_id' => $userId,
     ]);
     $rows = $stmt->fetchAll();
 } catch (PDOException $e) {
-    if ((string)$e->getCode() === '42S02') {
+    if ((string)$e->getCode() === '42S22') {
+        $legacyStmt = $pdo->prepare(
+            'SELECT id, vault_item_id, site, username_enc, password_enc, notes_enc, source, created_at
+             FROM vault_item_versions
+             WHERE vault_item_id = :item_id AND user_id = :user_id
+             ORDER BY created_at DESC, id DESC'
+        );
+        $legacyStmt->execute([
+            'item_id' => $itemId,
+            'user_id' => $userId,
+        ]);
+        $rows = $legacyStmt->fetchAll();
+    } elseif ((string)$e->getCode() === '42S02') {
         json_response([
             'ok' => true,
             'item' => [
@@ -49,9 +61,9 @@ try {
             'history_available' => false,
             'warning' => 'Vault history table is not available. Run migration 002.',
         ]);
+    } else {
+        throw $e;
     }
-
-    throw $e;
 }
 
 $versions = array_map(static function (array $row): array {

@@ -691,6 +691,9 @@ async function loadSecurityEvents() {
   securityEventsList.innerHTML = '<p class="history-empty">Loading security events...</p>';
 
   const data = await requestApi('../api/auth/security-events.php?limit=40', 'GET');
+  if (sessionsError && data.available === false) {
+    sessionsError.textContent = data.warning || 'Security events are unavailable until migration 001 is applied.';
+  }
   renderSecurityEvents(data.events || []);
 }
 

@@ -8,6 +8,10 @@ require_method('POST');
 require_csrf();
 $userId = require_auth();
 
+if (!two_factor_storage_available()) {
+    json_response(['ok' => false, 'error' => 'Two-factor storage unavailable. Run migration 004.'], 503);
+}
+
 $record = get_user_two_factor($userId);
 if (!$record) {
     json_response(['ok' => false, 'error' => 'Two-factor authentication is not enabled'], 409);

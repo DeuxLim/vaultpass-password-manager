@@ -48,68 +48,133 @@ if ($id <= 0 || $site === '' || $username === '' || $password === '') {
 }
 
 $pdo = db();
+$snapshotId = 0;
+$legacySchema = false;
 try {
     $pdo->beginTransaction();
 
-    $selectStmt = $pdo->prepare(
-        'SELECT id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc
-         FROM vault_items
-         WHERE id = :id AND user_id = :user_id
-         LIMIT 1
-         FOR UPDATE'
-    );
-    $selectStmt->execute([
-        'id' => $id,
-        'user_id' => $userId,
-    ]);
-    $current = $selectStmt->fetch();
+    try {
+        $selectStmt = $pdo->prepare(
+            'SELECT id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc
+             FROM vault_items
+             WHERE id = :id AND user_id = :user_id
+             LIMIT 1
+             FOR UPDATE'
+        );
+        $selectStmt->execute([
+            'id' => $id,
+            'user_id' => $userId,
+        ]);
+        $current = $selectStmt->fetch();
+    } catch (PDOException $e) {
+        if ((string)$e->getCode() !== '42S22') {
+            throw $e;
+        }
+
+        $legacySchema = true;
+        $selectStmt = $pdo->prepare(
+            'SELECT id, site, username_enc, password_enc, notes_enc
+             FROM vault_items
+             WHERE id = :id AND user_id = :user_id
+             LIMIT 1
+             FOR UPDATE'
+        );
+        $selectStmt->execute([
+            'id' => $id,
+            'user_id' => $userId,
+        ]);
+        $current = $selectStmt->fetch();
+    }
 
     if (!$current) {
         $pdo->rollBack();
         json_response(['ok' => false, 'error' => 'Record not found'], 404);
     }
 
-    $versionStmt = $pdo->prepare(
-        'INSERT INTO vault_item_versions (vault_item_id, user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source)
-         VALUES (:vault_item_id, :user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc, :source)'
-    );
-    $versionStmt->execute([
-        'vault_item_id' => (int)$current['id'],
-        'user_id' => $userId,
-        'site' => (string)$current['site'],
-        'folder' => (string)($current['folder'] ?? ''),
-        'tags_json' => ($current['tags_json'] ?? null),
-        'is_favorite' => (int)($current['is_favorite'] ?? 0),
-        'username_enc' => (string)$current['username_enc'],
-        'password_enc' => (string)$current['password_enc'],
-        'notes_enc' => (string)$current['notes_enc'],
-        'source' => 'update',
-    ]);
-    $snapshotId = (int)$pdo->lastInsertId();
+    try {
+        $versionStmt = $pdo->prepare(
+            'INSERT INTO vault_item_versions (vault_item_id, user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source)
+             VALUES (:vault_item_id, :user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc, :source)'
+        );
+        $versionStmt->execute([
+            'vault_item_id' => (int)$current['id'],
+            'user_id' => $userId,
+            'site' => (string)$current['site'],
+            'folder' => (string)($current['folder'] ?? ''),
+            'tags_json' => ($current['tags_json'] ?? null),
+            'is_favorite' => (int)($current['is_favorite'] ?? 0),
+            'username_enc' => (string)$current['username_enc'],
+            'password_enc' => (string)$current['password_enc'],
+            'notes_enc' => (string)$current['notes_enc'],
+            'source' => 'update',
+        ]);
+        $snapshotId = (int)$pdo->lastInsertId();
+    } catch (PDOException $e) {
+        if ((string)$e->getCode() === '42S22') {
+            $legacyVersionStmt = $pdo->prepare(
+                'INSERT INTO vault_item_versions (vault_item_id, user_id, site, username_enc, password_enc, notes_enc, source)
+                 VALUES (:vault_item_id, :user_id, :site, :username_enc, :password_enc, :notes_enc, :source)'
+            );
+            $legacyVersionStmt->execute([
+                'vault_item_id' => (int)$current['id'],
+                'user_id' => $userId,
+                'site' => (string)$current['site'],
+                'username_enc' => (string)$current['username_enc'],
+                'password_enc' => (string)$current['password_enc'],
+                'notes_enc' => (string)$current['notes_enc'],
+                'source' => 'update',
+            ]);
+            $snapshotId = (int)$pdo->lastInsertId();
+        } elseif ((string)$e->getCode() !== '42S02') {
+            throw $e;
+        } else {
+            $snapshotId = 0;
+        }
+    }
 
-    $updateStmt = $pdo->prepare(
-        'UPDATE vault_items
-         SET site = :site,
-             folder = :folder,
-             tags_json = :tags_json,
-             is_favorite = :is_favorite,
-             username_enc = :username_enc,
-             password_enc = :password_enc,
-             notes_enc = :notes_enc,
-             updated_at = CURRENT_TIMESTAMP
-         WHERE id = :id AND user_id = :user_id'
-    );
-    $updateStmt->execute([
-        'id' => $id,
-        'user_id' => $userId,
-        'site' => $site,
-        'folder' => mb_substr($folder, 0, 120),
-        'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
-        'is_favorite' => $isFavorite ? 1 : 0,
-        'username_enc' => encrypt_value($username),
-        'password_enc' => encrypt_value($password),
-        'notes_enc' => encrypt_value($notes),
-    ]);
+    if ($legacySchema) {
+        $updateStmt = $pdo->prepare(
+            'UPDATE vault_items
+             SET site = :site,
+                 username_enc = :username_enc,
+                 password_enc = :password_enc,
+                 notes_enc = :notes_enc,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND user_id = :user_id'
+        );
+        $updateStmt->execute([
+            'id' => $id,
+            'user_id' => $userId,
+            'site' => $site,
+            'username_enc' => encrypt_value($username),
+            'password_enc' => encrypt_value($password),
+            'notes_enc' => encrypt_value($notes),
+        ]);
+    } else {
+        $updateStmt = $pdo->prepare(
+            'UPDATE vault_items
+             SET site = :site,
+                 folder = :folder,
+                 tags_json = :tags_json,
+                 is_favorite = :is_favorite,
+                 username_enc = :username_enc,
+                 password_enc = :password_enc,
+                 notes_enc = :notes_enc,
+                 updated_at = CURRENT_TIMESTAMP
+             WHERE id = :id AND user_id = :user_id'
+        );
+        $updateStmt->execute([
+            'id' => $id,
+            'user_id' => $userId,
+            'site' => $site,
+            'folder' => mb_substr($folder, 0, 120),
+            'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
+            'is_favorite' => $isFavorite ? 1 : 0,
+            'username_enc' => encrypt_value($username),
+            'password_enc' => encrypt_value($password),
+            'notes_enc' => encrypt_value($notes),
+        ]);
+    }
 
     $pdo->commit();
 } catch (Throwable $e) {
@@ -126,6 +191,7 @@ audit_log('vault.update', $userId, [
     'folder' => $folder,
     'tag_count' => count($tags),
     'is_favorite' => $isFavorite,
+    'legacy_schema' => $legacySchema,
     'version_snapshot_id' => $snapshotId,
 ]);
 

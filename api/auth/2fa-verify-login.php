@@ -31,6 +31,16 @@ $ipMax = rate_limit_int_env('LOGIN_2FA_RATE_LIMIT_MAX', 12);
 enforce_rate_limit('auth:login:2fa:ip:' . request_ip(), $ipMax, $ipWindow);
 enforce_rate_limit('auth:login:2fa:user:' . $pendingUserId, $ipMax, $ipWindow);
 
+if (!two_factor_storage_available()) {
+    unset(
+        $_SESSION['pending_2fa_user_id'],
+        $_SESSION['pending_2fa_user_name'],
+        $_SESSION['pending_2fa_user_email'],
+        $_SESSION['pending_2fa_started_at']
+    );
+    json_response(['ok' => false, 'error' => 'Two-factor storage unavailable. Please sign in again after database migration.'], 503);
+}
+
 $record = get_user_two_factor($pendingUserId);
 if (!$record) {
     unset(
