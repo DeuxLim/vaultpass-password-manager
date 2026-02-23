@@ -5,6 +5,7 @@ const searchInput = document.getElementById('searchInput');
 const favoriteFilter = document.getElementById('favoriteFilter');
 const folderFilter = document.getElementById('folderFilter');
 const sortFilter = document.getElementById('sortFilter');
+const themeToggle = document.getElementById('themeToggle');
 const addItemBtn = document.getElementById('addItemBtn');
 const backupBtn = document.getElementById('backupBtn');
 const securityBtn = document.getElementById('securityBtn');
@@ -89,6 +90,25 @@ let parsedCsvRows = [];
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
 const csrfReady = initCsrfApi('../api/auth/csrf.php');
+
+function applyTheme(theme) {
+  const normalized = theme === 'dark' ? 'dark' : 'light';
+  document.documentElement.setAttribute('data-theme', normalized);
+  if (themeToggle) {
+    themeToggle.textContent = normalized === 'dark' ? 'Light Mode' : 'Dark Mode';
+  }
+}
+
+function initTheme() {
+  const stored = window.localStorage.getItem('vaultpass_theme');
+  if (stored === 'dark' || stored === 'light') {
+    applyTheme(stored);
+    return;
+  }
+
+  const preferredDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  applyTheme(preferredDark ? 'dark' : 'light');
+}
 
 function escapeHtml(value) {
   return String(value)
@@ -915,6 +935,12 @@ searchInput?.addEventListener('input', renderTable);
 favoriteFilter?.addEventListener('change', renderTable);
 folderFilter?.addEventListener('change', renderTable);
 sortFilter?.addEventListener('change', renderTable);
+themeToggle?.addEventListener('click', () => {
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  const next = current === 'dark' ? 'light' : 'dark';
+  applyTheme(next);
+  window.localStorage.setItem('vaultpass_theme', next);
+});
 passwordInput?.addEventListener('input', updatePasswordStrength);
 generatorLength?.addEventListener('input', () => {
   if (generatorLengthValue) {
@@ -1255,6 +1281,7 @@ sessionsList?.addEventListener('click', async (e) => {
 
 (async function init() {
   try {
+    initTheme();
     const ok = await loadSession();
     if (!ok) return;
     await loadItems();

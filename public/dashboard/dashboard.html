@@ -10,35 +10,36 @@
 </head>
 <body>
   <a class="skip-link" href="#mainContent">Skip to main content</a>
-  <div class="bg-orb orb-a"></div>
-  <div class="bg-orb orb-b"></div>
-
-  <header class="topbar">
-    <a class="brand" href="/">
-      <span class="brand-mark">VP</span>
-      <span class="brand-text">VaultPass</span>
-    </a>
-
-    <div class="topbar-actions">
-      <button id="backupBtn" class="btn btn-ghost">Import/Export</button>
-      <button id="securityBtn" class="btn btn-ghost">Security</button>
-      <button id="logoutBtn" class="btn btn-ghost danger">Logout</button>
-    </div>
-  </header>
-
-  <main id="mainContent" class="dashboard-shell">
-    <section class="headline-panel">
-      <div>
-        <p class="eyebrow">Vault dashboard</p>
-        <h1 id="welcomeText">Your password vault</h1>
+  <div class="app-layout">
+    <aside class="sidebar">
+      <a class="brand" href="/">
+        <span class="brand-mark">VP</span>
+        <span class="brand-text">VaultPass</span>
+      </a>
+      <nav class="sidebar-nav" aria-label="Dashboard sections">
+        <a href="#mainContent" class="nav-item is-active">Vault</a>
+        <button type="button" id="backupBtn" class="nav-item">Import / Export</button>
+        <button type="button" id="securityBtn" class="nav-item">Security</button>
+      </nav>
+      <div class="sidebar-footer">
+        <button id="themeToggle" class="btn btn-ghost">Dark Mode</button>
+        <button id="logoutBtn" class="btn btn-ghost danger">Logout</button>
       </div>
-      <div class="header-actions">
-        <input id="searchInput" type="search" placeholder="Search site, username, folder, tags, notes" aria-label="Search passwords">
-        <button id="addItemBtn" class="btn btn-primary">Add Password</button>
-      </div>
-    </section>
+    </aside>
 
-    <section class="health-panel" aria-label="Vault health overview">
+    <main id="mainContent" class="dashboard-shell">
+      <section class="headline-panel">
+        <div>
+          <p class="eyebrow">Vault workspace</p>
+          <h1 id="welcomeText">Your password vault</h1>
+        </div>
+        <div class="header-actions">
+          <input id="searchInput" type="search" placeholder="Search site, username, folder, tags, notes" aria-label="Search passwords">
+          <button id="addItemBtn" class="btn btn-primary">Add Password</button>
+        </div>
+      </section>
+
+      <section class="health-panel" aria-label="Vault health overview">
       <article class="health-card">
         <p class="health-label">Total entries</p>
         <p id="healthTotal" class="health-value">0</p>
@@ -55,49 +56,50 @@
         <p class="health-label">Old (&gt; 180 days)</p>
         <p id="healthOld" class="health-value is-old">0</p>
       </article>
-    </section>
+      </section>
 
-    <section class="filters-panel" aria-label="Vault filters">
-      <label for="favoriteFilter" class="sr-only">Favorite filter</label>
-      <select id="favoriteFilter">
-        <option value="all">All entries</option>
-        <option value="favorites">Favorites only</option>
-        <option value="non-favorites">Non-favorites only</option>
-      </select>
-      <label for="folderFilter" class="sr-only">Folder filter</label>
-      <select id="folderFilter">
-        <option value="all">All folders</option>
-      </select>
-      <label for="sortFilter" class="sr-only">Sort by</label>
-      <select id="sortFilter">
-        <option value="updated_desc">Recently updated</option>
-        <option value="created_desc">Recently created</option>
-        <option value="site_asc">Site (A-Z)</option>
-        <option value="site_desc">Site (Z-A)</option>
-      </select>
-    </section>
+      <section class="filters-panel" aria-label="Vault filters">
+        <label for="favoriteFilter" class="sr-only">Favorite filter</label>
+        <select id="favoriteFilter">
+          <option value="all">All entries</option>
+          <option value="favorites">Favorites only</option>
+          <option value="non-favorites">Non-favorites only</option>
+        </select>
+        <label for="folderFilter" class="sr-only">Folder filter</label>
+        <select id="folderFilter">
+          <option value="all">All folders</option>
+        </select>
+        <label for="sortFilter" class="sr-only">Sort by</label>
+        <select id="sortFilter">
+          <option value="updated_desc">Recently updated</option>
+          <option value="created_desc">Recently created</option>
+          <option value="site_asc">Site (A-Z)</option>
+          <option value="site_desc">Site (Z-A)</option>
+        </select>
+      </section>
 
-    <section class="table-card">
-      <table>
-        <caption class="sr-only">Saved vault credentials</caption>
-        <thead>
-          <tr>
-            <th scope="col">Fav</th>
-            <th scope="col">Site</th>
-            <th scope="col">Folder</th>
-            <th scope="col">Tags</th>
-            <th scope="col">Username</th>
-            <th scope="col">Password</th>
-            <th scope="col">Notes</th>
-            <th scope="col">Actions</th>
-          </tr>
-        </thead>
-        <tbody id="vaultTableBody"></tbody>
-      </table>
-      <div id="vaultCards" class="vault-cards"></div>
-      <p id="emptyState" class="empty-state" role="status" aria-live="polite">No saved passwords yet. Add your first credential to get started.</p>
-    </section>
-  </main>
+      <section class="table-card">
+        <table>
+          <caption class="sr-only">Saved vault credentials</caption>
+          <thead>
+            <tr>
+              <th scope="col">Fav</th>
+              <th scope="col">Site</th>
+              <th scope="col">Folder</th>
+              <th scope="col">Tags</th>
+              <th scope="col">Username</th>
+              <th scope="col">Password</th>
+              <th scope="col">Notes</th>
+              <th scope="col">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="vaultTableBody"></tbody>
+        </table>
+        <div id="vaultCards" class="vault-cards"></div>
+        <p id="emptyState" class="empty-state" role="status" aria-live="polite">No saved passwords yet. Add your first credential to get started.</p>
+      </section>
+    </main>
+  </div>
 
   <dialog id="vaultModal" class="vault-modal" aria-labelledby="modalTitle">
     <form id="vaultForm" method="dialog">
