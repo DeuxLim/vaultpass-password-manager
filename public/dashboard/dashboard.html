@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultPass Dashboard</title>
+  <link rel="stylesheet" href="dashboard.css">
+</head>
+<body>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">VP</span>
+      <span class="brand-text">VaultPass</span>
+    </a>
+
+    <div class="topbar-actions">
+      <button id="logoutBtn" class="btn btn-ghost danger">Logout</button>
+    </div>
+  </header>
+
+  <main class="dashboard-shell">
+    <section class="headline-panel">
+      <div>
+        <p class="eyebrow">Vault dashboard</p>
+        <h1 id="welcomeText">Your password vault</h1>
+      </div>
+      <div class="header-actions">
+        <input id="searchInput" type="search" placeholder="Search site or username" aria-label="Search passwords">
+        <button id="addItemBtn" class="btn btn-primary">Add Password</button>
+      </div>
+    </section>
+
+    <section class="table-card">
+      <table>
+        <thead>
+          <tr>
+            <th>Site</th>
+            <th>Username</th>
+            <th>Password</th>
+            <th>Notes</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="vaultTableBody"></tbody>
+      </table>
+      <p id="emptyState" class="empty-state">No saved passwords yet. Add your first credential to get started.</p>
+    </section>
+  </main>
+
+  <dialog id="vaultModal" class="vault-modal">
+    <form id="vaultForm" method="dialog">
+      <h2 id="modalTitle">Add Password</h2>
+      <input type="hidden" id="vaultId">
+
+      <label for="siteInput">Site</label>
+      <input type="text" id="siteInput" placeholder="example.com" required>
+
+      <label for="usernameInput">Username</label>
+      <input type="text" id="usernameInput" placeholder="name@company.com" required>
+
+      <label for="passwordInput">Password</label>
+      <input type="text" id="passwordInput" placeholder="Enter password" required>
+
+      <label for="notesInput">Notes</label>
+      <textarea id="notesInput" rows="3" placeholder="Optional notes"></textarea>
+
+      <p id="modalError" class="form-error"></p>
+
+      <menu>
+        <button type="button" id="cancelBtn" class="btn btn-ghost">Cancel</button>
+        <button type="submit" id="saveBtn" class="btn btn-primary">Save</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <script src="../script/api.js"></script>
+  <script src="dashboard.js"></script>
+</body>
+</html>

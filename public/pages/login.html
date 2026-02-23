@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultPass Login</title>
+  <link rel="stylesheet" href="../styles/login-apple.css">
+</head>
+<body>
+  <div class="bg-orb orb-a"></div>
+  <div class="bg-orb orb-b"></div>
+
+  <header class="topbar">
+    <a class="brand" href="/">
+      <span class="brand-mark">VP</span>
+      <span class="brand-text">VaultPass</span>
+    </a>
+    <a class="home-link" href="/">Back to Home</a>
+  </header>
+
+  <main class="auth-layout">
+    <section class="auth-intro">
+      <p class="eyebrow">Welcome back</p>
+      <h1>Your vault, quietly protected.</h1>
+      <p>
+        Sign in to manage credentials in a calm, focused workspace designed
+        for speed, clarity, and trust.
+      </p>
+      <ul>
+        <li>Simple credential management</li>
+        <li>Encrypted storage at rest</li>
+        <li>Focused, distraction-free dashboard</li>
+      </ul>
+    </section>
+
+    <section class="auth-shell">
+      <div class="container" id="authContainer">
+        <div class="forms">
+          <div class="form login">
+            <div class="formheader">
+              <span class="title">Sign In</span>
+              <p class="subtitle">Enter your account credentials.</p>
+            </div>
+            <form id="loginForm" novalidate>
+              <div class="input-field email">
+                <label for="log-email">Email</label>
+                <input type="email" id="log-email" placeholder="name@company.com" required>
+                <label class="log-error-msg-email" id="log-error-email"></label>
+              </div>
+              <div class="input-field">
+                <label for="log-pass">Password</label>
+                <input type="password" id="log-pass" class="password" placeholder="Enter your password" required>
+                <label class="log-error-msg-password" id="log-error-password"></label>
+              </div>
+              <div class="input-field button">
+                <input type="submit" id="mainlogin" value="Login">
+              </div>
+            </form>
+            <div class="login-signup">
+              <span class="text">New to VaultPass? <a href="#" class="text signup-link">Create account</a></span>
+            </div>
+          </div>
+
+          <div class="form signup">
+            <div class="regTitle">
+              <span class="title">Create Account</span>
+              <p class="subtitle">Start with a secure account.</p>
+              <label class="reg-error-msg" id="reg-error"></label>
+            </div>
+            <form id="registerForm" novalidate>
+              <div class="input-field">
+                <label for="reg-name">Full name</label>
+                <input type="text" id="reg-name" placeholder="Enter your name" required>
+              </div>
+              <div class="input-field">
+                <label for="reg-email">Email</label>
+                <input type="email" id="reg-email" placeholder="name@company.com" required>
+              </div>
+              <div class="input-field">
+                <label for="reg-pass">Password</label>
+                <input type="password" id="reg-pass" class="password" placeholder="Create password" required>
+              </div>
+              <div class="input-field">
+                <label for="reg-cpass">Confirm password</label>
+                <input type="password" id="reg-cpass" class="password" placeholder="Confirm password" required>
+              </div>
+              <div class="input-field button">
+                <input type="submit" id="Signup" value="Create Account">
+              </div>
+              <div class="login-signup">
+                <span class="text">Already have an account? <a href="#" class="text login-link">Sign in</a></span>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="../script/api.js"></script>
+  <script src="../script/main.js"></script>
+  <script src="../script/auth.js"></script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Local overrides
+config/local.php
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Logs/runtime
+tmp/
+logs/
+*.log
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Archives/backups
+*.zip
+*.tar
+*.tar.gz
+*.sql.gz
+
+# Certificates/keys
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx

@@ -1,0 +1,105 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=Space+Grotesk:wght@600;700&display=swap');
+
+:root {
+  --vp-login-bg: #eef4ff;
+  --vp-login-card: #ffffff;
+  --vp-login-text: #0f172a;
+  --vp-login-muted: #64748b;
+  --vp-login-stroke: #dbe3ef;
+  --vp-login-brand: #1664ff;
+  --vp-login-brand-2: #1e3a8a;
+}
+
+body {
+  font-family: 'Manrope', sans-serif;
+  color: var(--vp-login-text);
+  background: radial-gradient(circle at 15% 15%, #dceaff, transparent 35%),
+    radial-gradient(circle at 90% 5%, #d7f7ef, transparent 30%),
+    var(--vp-login-bg);
+}
+
+.navheader {
+  border-radius: 0;
+  margin-bottom: 2rem;
+  height: 76px;
+  background: rgba(15, 23, 42, 0.94);
+}
+
+.navbarcont {
+  width: min(1120px, 94vw);
+  justify-content: space-between;
+  gap: 2rem;
+}
+
+.left h1 a,
+.left h1 {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.35rem;
+}
+
+.left h1:hover {
+  font-size: 1.35rem;
+  text-indent: 0;
+}
+
+.container {
+  max-width: 470px;
+  border-radius: 20px;
+  border: 1px solid var(--vp-login-stroke);
+  box-shadow: 0 22px 46px rgba(15, 23, 42, 0.16);
+  background: var(--vp-login-card);
+  margin-top: 1.6rem;
+}
+
+.container .form .title {
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: 1.55rem;
+  margin-bottom: 1rem;
+}
+
+.form .title::before {
+  width: 44px;
+  height: 4px;
+  background: linear-gradient(120deg, var(--vp-login-brand), #20b486);
+}
+
+.input-field input {
+  border: 1px solid var(--vp-login-stroke);
+  border-radius: 12px;
+  padding: 0 0.9rem 0 2.4rem;
+  background: #f9fbff;
+}
+
+.input-field input:is(:focus, :valid) {
+  border-color: var(--vp-login-brand);
+}
+
+.input-field i.icon {
+  left: 0.7rem;
+}
+
+.form .button input {
+  border-radius: 12px;
+  background: linear-gradient(120deg, var(--vp-login-brand), var(--vp-login-brand-2));
+}
+
+.button input:hover {
+  background: linear-gradient(120deg, #1452cf, #1e3275);
+}
+
+.form .text,
+.login-signup .text {
+  color: var(--vp-login-muted);
+}
+
+.form a.text {
+  color: var(--vp-login-brand);
+}
+
+.termsPopUp .termsPopUpContainer {
+  width: min(560px, 92vw);
+  height: min(70vh, 680px);
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 16px;
+}
