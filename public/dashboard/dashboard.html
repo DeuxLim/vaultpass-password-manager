@@ -17,6 +17,7 @@
     </a>
 
     <div class="topbar-actions">
+      <button id="backupBtn" class="btn btn-ghost">Import/Export</button>
       <button id="securityBtn" class="btn btn-ghost">Security</button>
       <button id="logoutBtn" class="btn btn-ghost danger">Logout</button>
     </div>
@@ -146,6 +147,58 @@
       <menu>
         <button type="button" id="sessionsCloseBtn" class="btn btn-ghost">Close</button>
         <button type="button" id="revokeOthersBtn" class="btn btn-primary">Revoke Other Sessions</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="backupModal" class="vault-modal backup-modal" aria-labelledby="backupTitle">
+    <form id="backupForm" method="dialog">
+      <h2 id="backupTitle">Import / Export</h2>
+      <p class="history-item-label">Create encrypted backups and import CSV or encrypted backup files.</p>
+      <p id="backupError" class="form-error" role="alert" aria-live="assertive"></p>
+
+      <section class="backup-block">
+        <h3>Encrypted Export</h3>
+        <label for="exportPassphrase">Passphrase (min 10 chars)</label>
+        <input type="password" id="exportPassphrase" placeholder="Create export passphrase">
+        <button type="button" id="runExportBtn" class="btn btn-primary">Generate Backup</button>
+        <textarea id="exportOutput" rows="4" readonly placeholder="Backup JSON will appear here"></textarea>
+      </section>
+
+      <section class="backup-block">
+        <h3>Encrypted Import</h3>
+        <label for="importPassphrase">Passphrase</label>
+        <input type="password" id="importPassphrase" placeholder="Enter backup passphrase">
+        <label for="backupJsonInput">Backup JSON</label>
+        <textarea id="backupJsonInput" rows="4" placeholder='Paste exported JSON object'></textarea>
+        <button type="button" id="runImportBackupBtn" class="btn btn-primary">Import Backup</button>
+      </section>
+
+      <section class="backup-block">
+        <h3>CSV Import</h3>
+        <label for="csvInput">CSV Content</label>
+        <textarea id="csvInput" rows="5" placeholder="site,username,password,notes"></textarea>
+        <div class="csv-mapping">
+          <label for="csvMapSite">Site column</label>
+          <select id="csvMapSite"></select>
+          <label for="csvMapUsername">Username column</label>
+          <select id="csvMapUsername"></select>
+          <label for="csvMapPassword">Password column</label>
+          <select id="csvMapPassword"></select>
+          <label for="csvMapNotes">Notes column (optional)</label>
+          <select id="csvMapNotes"></select>
+        </div>
+        <div class="csv-actions">
+          <select id="csvImportMode">
+            <option value="append">Append</option>
+            <option value="replace">Replace existing vault</option>
+          </select>
+          <button type="button" id="runImportCsvBtn" class="btn btn-primary">Import CSV</button>
+        </div>
+      </section>
+
+      <menu>
+        <button type="button" id="backupCloseBtn" class="btn btn-ghost">Close</button>
       </menu>
     </form>
   </dialog>

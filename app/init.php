@@ -10,6 +10,7 @@ require_once __DIR__ . '/csrf.php';
 require_once __DIR__ . '/rate_limit.php';
 require_once __DIR__ . '/database.php';
 require_once __DIR__ . '/crypto.php';
+require_once __DIR__ . '/backup.php';
 require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/two_factor.php';
 

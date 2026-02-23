@@ -81,7 +81,7 @@ Scope:
 - ⬜ Secure notes item type.
 - ⬜ Favorites and foldering/tags.
 - ⬜ Search enhancements (site, username, tags, notes).
-- ⬜ Import/export:
+- ✅ Import/export:
   - CSV import (common manager formats)
   - encrypted backup export/import
 
@@ -93,7 +93,7 @@ Mobile requirements:
 Exit criteria:
 - ⬜ Users can generate/store/manage credentials end-to-end.
 - ✅ Users can restore previous versions of an edited vault item.
-- ⬜ Import/export roundtrip tested.
+- ✅ Import/export roundtrip tested.
 - ⬜ Mobile flows complete without desktop dependency.
 
 ---
@@ -240,11 +240,11 @@ Acceptance:
 ### Sprint 4
 Theme: Import/export and backup
 Tasks:
-- CSV import parser and mapping UI.
-- Encrypted export format v1.
-- Import validation/error reporting.
+- ✅ CSV import parser and mapping UI.
+- ✅ Encrypted export format v1.
+- ✅ Import validation/error reporting.
 Acceptance:
-- Successful export/import roundtrip on test fixtures.
+- ✅ Successful export/import roundtrip on test fixtures.
 
 ### Sprint 5
 Theme: Security trust upgrade (web)

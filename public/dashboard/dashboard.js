@@ -3,6 +3,7 @@ const cardsBody = document.getElementById('vaultCards');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
 const addItemBtn = document.getElementById('addItemBtn');
+const backupBtn = document.getElementById('backupBtn');
 const securityBtn = document.getElementById('securityBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const modal = document.getElementById('vaultModal');
@@ -30,6 +31,22 @@ const twofaUri = document.getElementById('twofaUri');
 const twofaRecoveryCodes = document.getElementById('twofaRecoveryCodes');
 const twofaVerifyCode = document.getElementById('twofaVerifyCode');
 const twofaConfirmEnableBtn = document.getElementById('twofaConfirmEnableBtn');
+const backupModal = document.getElementById('backupModal');
+const backupCloseBtn = document.getElementById('backupCloseBtn');
+const backupError = document.getElementById('backupError');
+const exportPassphrase = document.getElementById('exportPassphrase');
+const runExportBtn = document.getElementById('runExportBtn');
+const exportOutput = document.getElementById('exportOutput');
+const importPassphrase = document.getElementById('importPassphrase');
+const backupJsonInput = document.getElementById('backupJsonInput');
+const runImportBackupBtn = document.getElementById('runImportBackupBtn');
+const csvInput = document.getElementById('csvInput');
+const csvMapSite = document.getElementById('csvMapSite');
+const csvMapUsername = document.getElementById('csvMapUsername');
+const csvMapPassword = document.getElementById('csvMapPassword');
+const csvMapNotes = document.getElementById('csvMapNotes');
+const csvImportMode = document.getElementById('csvImportMode');
+const runImportCsvBtn = document.getElementById('runImportCsvBtn');
 const toastRegion = document.getElementById('toastRegion');
 
 const vaultId = document.getElementById('vaultId');
@@ -52,7 +69,10 @@ let historyItemId = 0;
 let modalReturnFocus = null;
 let historyReturnFocus = null;
 let sessionsReturnFocus = null;
+let backupReturnFocus = null;
 let toastTimer = null;
+let parsedCsvHeaders = [];
+let parsedCsvRows = [];
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
@@ -191,12 +211,205 @@ function closeSessionsModal() {
   sessionsModal?.close();
 }
 
+function closeBackupModal() {
+  backupModal?.close();
+}
+
 function resetTwoFactorSetupUi() {
   if (twofaSetupPanel) twofaSetupPanel.hidden = true;
   if (twofaSecret) twofaSecret.textContent = '';
   if (twofaUri) twofaUri.value = '';
   if (twofaRecoveryCodes) twofaRecoveryCodes.innerHTML = '';
   if (twofaVerifyCode) twofaVerifyCode.value = '';
+}
+
+function resetBackupUi() {
+  if (backupError) backupError.textContent = '';
+  if (exportPassphrase) exportPassphrase.value = '';
+  if (exportOutput) exportOutput.value = '';
+  if (importPassphrase) importPassphrase.value = '';
+  if (backupJsonInput) backupJsonInput.value = '';
+  if (csvInput) csvInput.value = '';
+  parsedCsvHeaders = [];
+  parsedCsvRows = [];
+  populateCsvMapping([]);
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let cell = '';
+  let row = [];
+  let inQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i];
+    const next = text[i + 1];
+
+    if (ch === '"') {
+      if (inQuotes && next === '"') {
+        cell += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (ch === ',' && !inQuotes) {
+      row.push(cell);
+      cell = '';
+      continue;
+    }
+
+    if ((ch === '\n' || ch === '\r') && !inQuotes) {
+      if (ch === '\r' && next === '\n') i += 1;
+      row.push(cell);
+      const normalized = row.map((value) => value.trim());
+      if (normalized.some((value) => value !== '')) {
+        rows.push(normalized);
+      }
+      row = [];
+      cell = '';
+      continue;
+    }
+
+    cell += ch;
+  }
+
+  row.push(cell);
+  const normalized = row.map((value) => value.trim());
+  if (normalized.some((value) => value !== '')) {
+    rows.push(normalized);
+  }
+
+  return rows;
+}
+
+function detectHeaderMapping(headers) {
+  const normalized = headers.map((h) => h.toLowerCase());
+  const find = (candidates) => normalized.findIndex((h) => candidates.some((c) => h.includes(c)));
+
+  return {
+    site: find(['site', 'url', 'domain', 'website']),
+    username: find(['username', 'user', 'login', 'email']),
+    password: find(['password', 'pass']),
+    notes: find(['note', 'notes', 'memo']),
+  };
+}
+
+function setSelectOptions(select, headers, includeEmpty = false) {
+  if (!select) return;
+  const options = [];
+  if (includeEmpty) {
+    options.push('<option value="">(none)</option>');
+  }
+  options.push(...headers.map((header, index) => `<option value="${index}">${escapeHtml(header)}</option>`));
+  select.innerHTML = options.join('');
+}
+
+function populateCsvMapping(headers) {
+  setSelectOptions(csvMapSite, headers);
+  setSelectOptions(csvMapUsername, headers);
+  setSelectOptions(csvMapPassword, headers);
+  setSelectOptions(csvMapNotes, headers, true);
+
+  if (headers.length === 0) return;
+
+  const mapping = detectHeaderMapping(headers);
+  if (csvMapSite && mapping.site >= 0) csvMapSite.value = String(mapping.site);
+  if (csvMapUsername && mapping.username >= 0) csvMapUsername.value = String(mapping.username);
+  if (csvMapPassword && mapping.password >= 0) csvMapPassword.value = String(mapping.password);
+  if (csvMapNotes && mapping.notes >= 0) csvMapNotes.value = String(mapping.notes);
+}
+
+function toCsvImportRows() {
+  const siteIndex = Number(csvMapSite?.value ?? -1);
+  const usernameIndex = Number(csvMapUsername?.value ?? -1);
+  const passwordIndex = Number(csvMapPassword?.value ?? -1);
+  const notesIndexRaw = csvMapNotes?.value ?? '';
+  const notesIndex = notesIndexRaw === '' ? -1 : Number(notesIndexRaw);
+
+  if (siteIndex < 0 || usernameIndex < 0 || passwordIndex < 0) {
+    throw new Error('Map site, username, and password columns before importing.');
+  }
+
+  return parsedCsvRows.map((row) => ({
+    site: String(row[siteIndex] ?? '').trim(),
+    username: String(row[usernameIndex] ?? '').trim(),
+    password: String(row[passwordIndex] ?? ''),
+    notes: notesIndex >= 0 ? String(row[notesIndex] ?? '').trim() : '',
+  }));
+}
+
+async function runEncryptedExport() {
+  const passphrase = exportPassphrase?.value ?? '';
+  if (passphrase.trim().length < 10) {
+    throw new Error('Export passphrase must be at least 10 characters.');
+  }
+
+  await csrfReady;
+  const data = await requestApi('../api/vault/export.php', 'POST', { passphrase });
+  const backupJson = JSON.stringify(data.backup || {}, null, 2);
+  if (exportOutput) exportOutput.value = backupJson;
+
+  const blob = new Blob([backupJson], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `vaultpass-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
+
+  showToast(`Backup exported (${Number(data.item_count || 0)} item(s)).`);
+}
+
+async function runEncryptedImport() {
+  const passphrase = importPassphrase?.value ?? '';
+  const backupRaw = backupJsonInput?.value ?? '';
+
+  if (passphrase.trim() === '') {
+    throw new Error('Import passphrase is required.');
+  }
+  if (backupRaw.trim() === '') {
+    throw new Error('Paste the backup JSON payload to import.');
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(backupRaw);
+  } catch (_error) {
+    throw new Error('Backup JSON is invalid.');
+  }
+
+  await csrfReady;
+  const data = await requestApi('../api/vault/import-backup.php', 'POST', {
+    passphrase,
+    backup: parsed,
+  });
+  await loadItems();
+
+  const imported = Number(data.imported_count || 0);
+  const errors = Number(data.error_count || 0);
+  showToast(`Backup import finished: ${imported} imported, ${errors} error(s).`, errors > 0 ? 'error' : 'success');
+}
+
+async function runCsvImport() {
+  if (parsedCsvRows.length === 0) {
+    throw new Error('Paste CSV content first.');
+  }
+
+  const rows = toCsvImportRows();
+  const mode = String(csvImportMode?.value || 'append');
+
+  await csrfReady;
+  const data = await requestApi('../api/vault/import-csv.php', 'POST', { rows, mode });
+  await loadItems();
+
+  const imported = Number(data.imported_count || 0);
+  const errors = Number(data.error_count || 0);
+  showToast(`CSV import finished: ${imported} imported, ${errors} error(s).`, errors > 0 ? 'error' : 'success');
 }
 
 function renderTwoFactorStatus(enabled, recoveryCodesRemaining) {
@@ -387,6 +600,12 @@ async function openSessionsModal(triggerElement = null) {
   }
 }
 
+function openBackupModal(triggerElement = null) {
+  backupError.textContent = '';
+  backupReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
+  backupModal.showModal();
+}
+
 function renderTable() {
   const visible = filteredItems();
 
@@ -509,6 +728,10 @@ async function loadItems() {
 }
 
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
+backupBtn?.addEventListener('click', (e) => {
+  resetBackupUi();
+  openBackupModal(e.currentTarget);
+});
 securityBtn?.addEventListener('click', (e) => {
   openSessionsModal(e.currentTarget).catch((error) => {
     sessionsError.textContent = error.message || 'Unable to load sessions.';
@@ -517,6 +740,7 @@ securityBtn?.addEventListener('click', (e) => {
 cancelBtn?.addEventListener('click', closeModal);
 historyCloseBtn?.addEventListener('click', closeHistoryModal);
 sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
+backupCloseBtn?.addEventListener('click', closeBackupModal);
 searchInput?.addEventListener('input', renderTable);
 passwordInput?.addEventListener('input', updatePasswordStrength);
 generatorLength?.addEventListener('input', () => {
@@ -532,6 +756,55 @@ generatePasswordBtn?.addEventListener('click', () => {
     showToast('Generated secure password.');
   } catch (error) {
     modalError.textContent = error.message || 'Unable to generate password.';
+  }
+});
+csvInput?.addEventListener('input', () => {
+  backupError.textContent = '';
+  const raw = csvInput.value || '';
+  if (raw.trim() === '') {
+    parsedCsvHeaders = [];
+    parsedCsvRows = [];
+    populateCsvMapping([]);
+    return;
+  }
+
+  const parsed = parseCsv(raw);
+  if (parsed.length < 2) {
+    parsedCsvHeaders = [];
+    parsedCsvRows = [];
+    populateCsvMapping([]);
+    return;
+  }
+
+  parsedCsvHeaders = parsed[0];
+  parsedCsvRows = parsed.slice(1);
+  populateCsvMapping(parsedCsvHeaders);
+});
+
+runExportBtn?.addEventListener('click', async () => {
+  backupError.textContent = '';
+  try {
+    await runEncryptedExport();
+  } catch (error) {
+    backupError.textContent = error.message || 'Unable to export backup.';
+  }
+});
+
+runImportBackupBtn?.addEventListener('click', async () => {
+  backupError.textContent = '';
+  try {
+    await runEncryptedImport();
+  } catch (error) {
+    backupError.textContent = error.message || 'Unable to import backup.';
+  }
+});
+
+runImportCsvBtn?.addEventListener('click', async () => {
+  backupError.textContent = '';
+  try {
+    await runCsvImport();
+  } catch (error) {
+    backupError.textContent = error.message || 'Unable to import CSV.';
   }
 });
 twofaSetupBtn?.addEventListener('click', async () => {
@@ -585,6 +858,15 @@ sessionsModal?.addEventListener('close', () => {
     sessionsReturnFocus.focus();
   }
   sessionsReturnFocus = null;
+});
+
+backupModal?.addEventListener('close', () => {
+  resetBackupUi();
+
+  if (backupReturnFocus instanceof HTMLElement) {
+    backupReturnFocus.focus();
+  }
+  backupReturnFocus = null;
 });
 
 revokeOthersBtn?.addEventListener('click', async () => {

@@ -65,6 +65,9 @@ LOGIN_2FA_RATE_LIMIT_MAX=12
 # Optional 2FA tuning
 TOTP_ISSUER=VaultPass
 TOTP_WINDOW=1
+
+# Optional encrypted backup tuning
+BACKUP_KDF_ITERATIONS=210000
 ```
 
 `APP_KEY` must be a long random value.
