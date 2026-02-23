@@ -1,15 +1,30 @@
 const loginForm = document.getElementById('loginForm');
 const registerForm = document.getElementById('registerForm');
+const login2faField = document.getElementById('login-2fa-field');
+const login2faToken = document.getElementById('log-2fa-token');
+const loginSubmit = document.getElementById('mainlogin');
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
 const csrfReady = initCsrfApi('../api/auth/csrf.php');
 
+let loginChallengeActive = false;
+
 function setLoginError(message) {
   const emailError = document.getElementById('log-error-email');
   const passwordError = document.getElementById('log-error-password');
+  const tokenError = document.getElementById('log-error-2fa');
   if (emailError) emailError.textContent = '';
-  if (passwordError) passwordError.textContent = message;
+  if (passwordError) passwordError.textContent = '';
+  if (tokenError) tokenError.textContent = '';
+
+  if (!message) return;
+
+  if (loginChallengeActive) {
+    if (tokenError) tokenError.textContent = message;
+  } else if (passwordError) {
+    passwordError.textContent = message;
+  }
 }
 
 function setRegisterError(message) {
@@ -19,16 +34,66 @@ function setRegisterError(message) {
   regError.textContent = message;
 }
 
+function setLoginChallengeMode(active) {
+  loginChallengeActive = active;
+  if (login2faField) login2faField.hidden = !active;
+
+  const emailInput = document.getElementById('log-email');
+  const passwordInput = document.getElementById('log-pass');
+
+  if (emailInput) emailInput.disabled = active;
+  if (passwordInput) passwordInput.disabled = active;
+
+  if (loginSubmit) {
+    loginSubmit.value = active ? 'Verify 2FA' : 'Login';
+  }
+
+  if (!active && login2faToken) {
+    login2faToken.value = '';
+  }
+
+  if (active && login2faToken) {
+    window.setTimeout(() => login2faToken.focus(), 0);
+  }
+}
+
+document.querySelector('.signup-link')?.addEventListener('click', () => {
+  setLoginChallengeMode(false);
+  setLoginError('');
+});
+
+document.querySelector('.login-link')?.addEventListener('click', () => {
+  setLoginError('');
+});
+
 loginForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   setLoginError('');
 
   const email = document.getElementById('log-email')?.value.trim() || '';
   const password = document.getElementById('log-pass')?.value || '';
+  const token = login2faToken?.value.trim() || '';
 
   try {
     await csrfReady;
-    await requestApi('../api/auth/login.php', 'POST', { email, password });
+
+    if (!loginChallengeActive) {
+      const loginData = await requestApi('../api/auth/login.php', 'POST', { email, password });
+      if (loginData?.requires_2fa) {
+        setLoginChallengeMode(true);
+        return;
+      }
+
+      window.location.href = '../dashboard/dashboard.html';
+      return;
+    }
+
+    if (!token) {
+      setLoginError('Enter your authenticator code or recovery code.');
+      return;
+    }
+
+    await requestApi('../api/auth/2fa-verify-login.php', 'POST', { token });
     window.location.href = '../dashboard/dashboard.html';
   } catch (error) {
     if (error?.status === 429) {
@@ -38,6 +103,11 @@ loginForm?.addEventListener('submit', async (e) => {
         return;
       }
     }
+
+    if (loginChallengeActive && error?.status === 401 && String(error?.message || '').toLowerCase().includes('expired')) {
+      setLoginChallengeMode(false);
+    }
+
     setLoginError(error.message);
   }
 });

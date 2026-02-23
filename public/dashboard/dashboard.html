@@ -17,6 +17,7 @@
     </a>
 
     <div class="topbar-actions">
+      <button id="securityBtn" class="btn btn-ghost">Security</button>
       <button id="logoutBtn" class="btn btn-ghost danger">Logout</button>
     </div>
   </header>
@@ -86,6 +87,44 @@
       <div id="historyList" class="history-list"></div>
       <menu>
         <button type="button" id="historyCloseBtn" class="btn btn-ghost">Close</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="sessionsModal" class="vault-modal sessions-modal" aria-labelledby="sessionsTitle">
+    <form id="sessionsForm" method="dialog">
+      <h2 id="sessionsTitle">Active Sessions</h2>
+      <p class="history-item-label">Review your logged-in devices and revoke any session you do not trust.</p>
+      <p id="sessionsError" class="form-error" role="alert" aria-live="assertive"></p>
+
+      <section class="twofa-panel">
+        <div class="twofa-header">
+          <div>
+            <p class="session-entry-title">Two-factor authentication (2FA)</p>
+            <p id="twofaStatusText" class="session-entry-meta">Checking status...</p>
+          </div>
+          <div class="twofa-actions">
+            <button type="button" id="twofaSetupBtn" class="btn btn-primary">Enable 2FA</button>
+            <button type="button" id="twofaDisableBtn" class="btn btn-ghost">Disable 2FA</button>
+          </div>
+        </div>
+        <div id="twofaSetupPanel" class="twofa-setup-panel" hidden>
+          <p class="session-entry-meta">Add this secret to your authenticator app:</p>
+          <code id="twofaSecret" class="twofa-secret"></code>
+          <p class="session-entry-meta">Or use this setup URI:</p>
+          <textarea id="twofaUri" rows="2" readonly></textarea>
+          <p class="session-entry-meta">Recovery codes (save these now):</p>
+          <div id="twofaRecoveryCodes" class="twofa-recovery-codes"></div>
+          <label for="twofaVerifyCode">Enter 6-digit code to finish setup</label>
+          <input type="text" id="twofaVerifyCode" inputmode="numeric" autocomplete="one-time-code" placeholder="123456">
+          <button type="button" id="twofaConfirmEnableBtn" class="btn btn-primary">Confirm Enable 2FA</button>
+        </div>
+      </section>
+
+      <div id="sessionsList" class="sessions-list"></div>
+      <menu>
+        <button type="button" id="sessionsCloseBtn" class="btn btn-ghost">Close</button>
+        <button type="button" id="revokeOthersBtn" class="btn btn-primary">Revoke Other Sessions</button>
       </menu>
     </form>
   </dialog>

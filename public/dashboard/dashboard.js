@@ -3,6 +3,7 @@ const cardsBody = document.getElementById('vaultCards');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
 const addItemBtn = document.getElementById('addItemBtn');
+const securityBtn = document.getElementById('securityBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const modal = document.getElementById('vaultModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -15,6 +16,20 @@ const historyCloseBtn = document.getElementById('historyCloseBtn');
 const historyItemLabel = document.getElementById('historyItemLabel');
 const historyError = document.getElementById('historyError');
 const historyList = document.getElementById('historyList');
+const sessionsModal = document.getElementById('sessionsModal');
+const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
+const revokeOthersBtn = document.getElementById('revokeOthersBtn');
+const sessionsError = document.getElementById('sessionsError');
+const sessionsList = document.getElementById('sessionsList');
+const twofaStatusText = document.getElementById('twofaStatusText');
+const twofaSetupBtn = document.getElementById('twofaSetupBtn');
+const twofaDisableBtn = document.getElementById('twofaDisableBtn');
+const twofaSetupPanel = document.getElementById('twofaSetupPanel');
+const twofaSecret = document.getElementById('twofaSecret');
+const twofaUri = document.getElementById('twofaUri');
+const twofaRecoveryCodes = document.getElementById('twofaRecoveryCodes');
+const twofaVerifyCode = document.getElementById('twofaVerifyCode');
+const twofaConfirmEnableBtn = document.getElementById('twofaConfirmEnableBtn');
 const toastRegion = document.getElementById('toastRegion');
 
 const vaultId = document.getElementById('vaultId');
@@ -27,6 +42,7 @@ let items = [];
 let historyItemId = 0;
 let modalReturnFocus = null;
 let historyReturnFocus = null;
+let sessionsReturnFocus = null;
 let toastTimer = null;
 
 const requestApi = window.VaultApi.apiRequest;
@@ -90,6 +106,90 @@ function closeHistoryModal() {
   historyModal?.close();
 }
 
+function closeSessionsModal() {
+  sessionsModal?.close();
+}
+
+function resetTwoFactorSetupUi() {
+  if (twofaSetupPanel) twofaSetupPanel.hidden = true;
+  if (twofaSecret) twofaSecret.textContent = '';
+  if (twofaUri) twofaUri.value = '';
+  if (twofaRecoveryCodes) twofaRecoveryCodes.innerHTML = '';
+  if (twofaVerifyCode) twofaVerifyCode.value = '';
+}
+
+function renderTwoFactorStatus(enabled, recoveryCodesRemaining) {
+  if (!twofaStatusText || !twofaSetupBtn || !twofaDisableBtn) return;
+
+  if (enabled) {
+    twofaStatusText.textContent = `Enabled (${recoveryCodesRemaining} recovery code(s) remaining).`;
+    twofaSetupBtn.disabled = true;
+    twofaDisableBtn.disabled = false;
+  } else {
+    twofaStatusText.textContent = 'Not enabled.';
+    twofaSetupBtn.disabled = false;
+    twofaDisableBtn.disabled = true;
+  }
+}
+
+async function loadTwoFactorStatus() {
+  if (twofaStatusText) {
+    twofaStatusText.textContent = 'Checking status...';
+  }
+
+  const data = await requestApi('../api/auth/2fa-status.php', 'GET');
+  renderTwoFactorStatus(Boolean(data.enabled), Number(data.recovery_codes_remaining || 0));
+}
+
+async function startTwoFactorSetup() {
+  sessionsError.textContent = '';
+  resetTwoFactorSetupUi();
+
+  await csrfReady;
+  const data = await requestApi('../api/auth/2fa-setup.php', 'POST');
+  const recoveryCodes = Array.isArray(data.recovery_codes) ? data.recovery_codes : [];
+
+  if (twofaSecret) twofaSecret.textContent = String(data.secret || '');
+  if (twofaUri) twofaUri.value = String(data.otpauth_uri || '');
+  if (twofaRecoveryCodes) {
+    twofaRecoveryCodes.innerHTML = recoveryCodes.map((code) => `<code>${escapeHtml(code)}</code>`).join('');
+  }
+  if (twofaSetupPanel) twofaSetupPanel.hidden = false;
+  if (twofaVerifyCode) twofaVerifyCode.focus();
+
+  showToast('2FA setup generated. Save your recovery codes now.');
+}
+
+async function confirmTwoFactorEnable() {
+  const code = twofaVerifyCode?.value.trim() || '';
+  if (!code) {
+    sessionsError.textContent = 'Enter the 6-digit code from your authenticator app.';
+    return;
+  }
+
+  sessionsError.textContent = '';
+  await csrfReady;
+  await requestApi('../api/auth/2fa-enable.php', 'POST', { code });
+  resetTwoFactorSetupUi();
+  await loadTwoFactorStatus();
+  showToast('2FA enabled successfully.');
+}
+
+async function disableTwoFactor() {
+  const password = window.prompt('Enter your account password to disable 2FA:');
+  if (!password) return;
+
+  const token = window.prompt('Enter current authenticator code or a recovery code:');
+  if (!token) return;
+
+  sessionsError.textContent = '';
+  await csrfReady;
+  await requestApi('../api/auth/2fa-disable.php', 'POST', { password, token });
+  resetTwoFactorSetupUi();
+  await loadTwoFactorStatus();
+  showToast('2FA disabled.');
+}
+
 async function loadHistory(itemId) {
   historyError.textContent = '';
   historyList.innerHTML = '<p class="history-empty">Loading history...</p>';
@@ -131,6 +231,56 @@ async function loadHistory(itemId) {
   }).join('');
 }
 
+function sessionDeviceLabel(userAgent) {
+  const ua = String(userAgent || '').toLowerCase();
+  if (ua.includes('iphone') || ua.includes('android') || ua.includes('mobile')) {
+    return 'Mobile browser';
+  }
+
+  if (ua.includes('mac') || ua.includes('windows') || ua.includes('linux')) {
+    return 'Desktop browser';
+  }
+
+  return 'Browser session';
+}
+
+function renderSessionsList(sessions) {
+  if (!Array.isArray(sessions) || sessions.length === 0) {
+    sessionsList.innerHTML = '<p class="history-empty">No active sessions found.</p>';
+    return;
+  }
+
+  sessionsList.innerHTML = sessions.map((session) => {
+    const isCurrent = Boolean(session.is_current);
+    const isRevoked = Boolean(session.revoked_at);
+    const status = isCurrent ? 'Current' : (isRevoked ? 'Revoked' : 'Active');
+    const action = (!isCurrent && !isRevoked)
+      ? `<button type="button" class="action-danger" data-action="revoke-session" data-session-id="${session.id}">Revoke</button>`
+      : '<button type="button" class="action-secondary" disabled>Unavailable</button>';
+
+    return `
+      <article class="session-entry ${isCurrent ? 'is-current' : ''}">
+        <div class="session-entry-head">
+          <p class="session-entry-title">${escapeHtml(sessionDeviceLabel(session.user_agent))}</p>
+          <span class="session-status ${isCurrent ? 'is-current' : (isRevoked ? 'is-revoked' : 'is-active')}">${status}</span>
+        </div>
+        <p class="session-entry-meta">IP: ${escapeHtml(session.ip_address || 'unknown')}</p>
+        <p class="session-entry-meta">Last activity: ${escapeHtml(formatDateTime(session.last_activity))}</p>
+        <p class="session-entry-meta">Created: ${escapeHtml(formatDateTime(session.created_at))}</p>
+        <div class="session-entry-actions">${action}</div>
+      </article>
+    `;
+  }).join('');
+}
+
+async function loadSessions() {
+  sessionsError.textContent = '';
+  sessionsList.innerHTML = '<p class="history-empty">Loading sessions...</p>';
+
+  const data = await requestApi('../api/auth/sessions.php', 'GET');
+  renderSessionsList(data.sessions || []);
+}
+
 async function openHistoryModal(item, triggerElement = null) {
   historyItemId = item.id;
   historyError.textContent = '';
@@ -141,6 +291,18 @@ async function openHistoryModal(item, triggerElement = null) {
     await loadHistory(item.id);
   } catch (error) {
     historyError.textContent = error.message || 'Unable to load history.';
+  }
+}
+
+async function openSessionsModal(triggerElement = null) {
+  sessionsError.textContent = '';
+  sessionsReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
+  sessionsModal.showModal();
+
+  try {
+    await Promise.all([loadSessions(), loadTwoFactorStatus()]);
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to load sessions.';
   }
 }
 
@@ -259,9 +421,36 @@ async function loadItems() {
 }
 
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
+securityBtn?.addEventListener('click', (e) => {
+  openSessionsModal(e.currentTarget).catch((error) => {
+    sessionsError.textContent = error.message || 'Unable to load sessions.';
+  });
+});
 cancelBtn?.addEventListener('click', closeModal);
 historyCloseBtn?.addEventListener('click', closeHistoryModal);
+sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
 searchInput?.addEventListener('input', renderTable);
+twofaSetupBtn?.addEventListener('click', async () => {
+  try {
+    await startTwoFactorSetup();
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to start 2FA setup.';
+  }
+});
+twofaConfirmEnableBtn?.addEventListener('click', async () => {
+  try {
+    await confirmTwoFactorEnable();
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to enable 2FA.';
+  }
+});
+twofaDisableBtn?.addEventListener('click', async () => {
+  try {
+    await disableTwoFactor();
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to disable 2FA.';
+  }
+});
 
 modal?.addEventListener('close', () => {
   if (modalReturnFocus instanceof HTMLElement) {
@@ -280,6 +469,39 @@ historyModal?.addEventListener('close', () => {
     historyReturnFocus.focus();
   }
   historyReturnFocus = null;
+});
+
+sessionsModal?.addEventListener('close', () => {
+  sessionsError.textContent = '';
+  sessionsList.innerHTML = '';
+  resetTwoFactorSetupUi();
+  if (twofaStatusText) twofaStatusText.textContent = 'Checking status...';
+
+  if (sessionsReturnFocus instanceof HTMLElement) {
+    sessionsReturnFocus.focus();
+  }
+  sessionsReturnFocus = null;
+});
+
+revokeOthersBtn?.addEventListener('click', async () => {
+  const confirmed = window.confirm('Revoke all sessions except this current session?');
+  if (!confirmed) return;
+
+  sessionsError.textContent = '';
+
+  try {
+    await csrfReady;
+    const data = await requestApi('../api/auth/revoke-other-sessions.php', 'POST');
+    await loadSessions();
+
+    if ((data.revoked_count || 0) > 0) {
+      showToast(`Revoked ${data.revoked_count} other session(s).`);
+    } else {
+      showToast('No other active sessions to revoke.');
+    }
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to revoke other sessions.';
+  }
 });
 
 logoutBtn?.addEventListener('click', async () => {
@@ -422,6 +644,31 @@ historyList?.addEventListener('click', async (e) => {
     showToast('Version restored successfully.');
   } catch (error) {
     historyError.textContent = error.message;
+  }
+});
+
+sessionsList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+
+  const actionButton = target.closest('button[data-action="revoke-session"]');
+  if (!(actionButton instanceof HTMLElement)) return;
+
+  const sessionId = Number(actionButton.dataset.sessionId || 0);
+  if (!sessionId) return;
+
+  const confirmed = window.confirm('Revoke this session? The device will be signed out.');
+  if (!confirmed) return;
+
+  sessionsError.textContent = '';
+
+  try {
+    await csrfReady;
+    await requestApi('../api/auth/revoke-session.php', 'POST', { session_id: sessionId });
+    await loadSessions();
+    showToast('Session revoked.');
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to revoke session.';
   }
 });
 

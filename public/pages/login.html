@@ -52,6 +52,11 @@
                 <input type="password" id="log-pass" class="password" placeholder="Enter your password" required>
                 <label class="log-error-msg-password" id="log-error-password"></label>
               </div>
+              <div class="input-field" id="login-2fa-field" hidden>
+                <label for="log-2fa-token">2FA Code or Recovery Code</label>
+                <input type="text" id="log-2fa-token" placeholder="123456 or ABCD-1234" autocomplete="one-time-code">
+                <label class="log-error-msg-password" id="log-error-2fa"></label>
+              </div>
               <div class="input-field button">
                 <input type="submit" id="mainlogin" value="Login">
               </div>

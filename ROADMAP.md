@@ -33,8 +33,11 @@ VaultPass will evolve from a web MVP into a RoboForm-class password manager with
 - CSRF protection + auth rate limiting implemented.
 - Audit logging implemented for auth and vault mutations.
 - Vault item version history + restore flow implemented (web dashboard + API).
+- User session tracking foundation implemented (DB + auth lifecycle hooks).
+- Active sessions management implemented (list sessions + revoke single/others).
+- TOTP 2FA implemented (setup, enable, login challenge, recovery codes, disable).
 - Landing/login/dashboard visual redesign in progress.
-- Not yet complete: extension codebase, advanced security controls (2FA/session UI).
+- Not yet complete: extension codebase, zero-knowledge upgrade and later-phase competitive features.
 
 ---
 
@@ -277,12 +280,13 @@ Acceptance:
 ### Sprint 8
 Theme: Account security controls
 Tasks:
-- Add TOTP 2FA setup/verification/recovery-code flows.
-- Add active session list API and UI.
-- Add remote logout endpoint for selected session(s).
+- ✅ Add backend `user_sessions` tracking (schema + login/register/logout/session hooks).
+- ✅ Add TOTP 2FA setup/verification/recovery-code flows.
+- ✅ Add active session list API and UI.
+- ✅ Add remote logout endpoint for selected session(s).
 Acceptance:
-- 2FA-protected login works end-to-end.
-- User can revoke other sessions from account security settings.
+- ✅ 2FA-protected login works end-to-end.
+- ✅ User can revoke other sessions from account security settings.
 
 ---
 

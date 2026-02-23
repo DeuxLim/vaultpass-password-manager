@@ -12,6 +12,16 @@ if (!$userId) {
     json_response(['ok' => true, 'authenticated' => false]);
 }
 
+if (current_session_revoked($userId)) {
+    $_SESSION = [];
+    if (session_status() === PHP_SESSION_ACTIVE) {
+        session_destroy();
+    }
+    json_response(['ok' => true, 'authenticated' => false]);
+}
+
+touch_user_session($userId);
+
 json_response([
     'ok' => true,
     'authenticated' => true,

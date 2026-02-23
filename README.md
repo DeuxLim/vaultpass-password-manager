@@ -59,6 +59,12 @@ REGISTER_RATE_LIMIT_WINDOW=300
 REGISTER_RATE_LIMIT_MAX=10
 REGISTER_EMAIL_RATE_LIMIT_WINDOW=900
 REGISTER_EMAIL_RATE_LIMIT_MAX=3
+LOGIN_2FA_RATE_LIMIT_WINDOW=300
+LOGIN_2FA_RATE_LIMIT_MAX=12
+
+# Optional 2FA tuning
+TOTP_ISSUER=VaultPass
+TOTP_WINDOW=1
 ```
 
 `APP_KEY` must be a long random value.
@@ -87,6 +93,18 @@ If you already created the database before vault history/versioning was added, r
 
 ```bash
 mysql -u root -p < sql/migrations/002_add_vault_item_versions.sql
+```
+
+If you already created the database before session tracking was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/003_add_user_sessions.sql
+```
+
+If you already created the database before two-factor auth was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/004_add_user_two_factor.sql
 ```
 
 2. Run app:

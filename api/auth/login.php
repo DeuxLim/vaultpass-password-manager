@@ -24,7 +24,18 @@ enforce_rate_limit('auth:login:ip:' . request_ip(), $ipMax, $ipWindow);
 enforce_rate_limit('auth:login:email:' . $email, $emailMax, $emailWindow);
 
 $pdo = db();
-$stmt = $pdo->prepare('SELECT id, name, email, password_hash FROM users WHERE email = :email LIMIT 1');
+$stmt = $pdo->prepare(
+    'SELECT
+        u.id,
+        u.name,
+        u.email,
+        u.password_hash,
+        utf.user_id AS two_factor_user_id
+     FROM users u
+     LEFT JOIN user_two_factor utf ON utf.user_id = u.id
+     WHERE u.email = :email
+     LIMIT 1'
+);
 $stmt->execute(['email' => $email]);
 $user = $stmt->fetch();
 
@@ -33,10 +44,30 @@ if (!$user || !password_verify($password, (string)$user['password_hash'])) {
     json_response(['ok' => false, 'error' => 'Invalid credentials'], 401);
 }
 
+if (!empty($user['two_factor_user_id'])) {
+    session_regenerate_id(true);
+    csrf_token();
+
+    $_SESSION['pending_2fa_user_id'] = (int)$user['id'];
+    $_SESSION['pending_2fa_user_name'] = (string)$user['name'];
+    $_SESSION['pending_2fa_user_email'] = (string)$user['email'];
+    $_SESSION['pending_2fa_started_at'] = time();
+
+    unset($_SESSION['user_id'], $_SESSION['user_name']);
+
+    audit_log('auth.login.challenge', (int)$user['id']);
+
+    json_response([
+        'ok' => true,
+        'requires_2fa' => true,
+    ]);
+}
+
 session_regenerate_id(true);
 csrf_token();
 $_SESSION['user_id'] = (int)$user['id'];
 $_SESSION['user_name'] = (string)$user['name'];
+register_user_session((int)$user['id']);
 audit_log('auth.login.success', (int)$user['id']);
 
 json_response([

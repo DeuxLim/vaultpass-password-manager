@@ -7,6 +7,7 @@ require __DIR__ . '/../bootstrap.php';
 require_method('POST');
 require_csrf();
 $userId = current_user_id();
+revoke_current_user_session($userId);
 
 $_SESSION = [];
 if (ini_get('session.use_cookies')) {
