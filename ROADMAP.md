@@ -54,9 +54,9 @@ Scope:
 - ✅ CSRF token flow for all mutating requests.
 - ✅ Session hardening (secure cookie settings, timeout policy, rotation policy).
 - ✅ Rate limiting for auth endpoints.
-- ⬜ Input validation normalization and centralized error contracts.
+- ✅ Input validation normalization and centralized error contracts.
 - ✅ Shared frontend API utility and request error handling standards.
-- ⬜ Baseline automated checks (lint/static checks + smoke test script).
+- ✅ Baseline automated checks (lint/static checks + smoke test script).
 
 Mobile requirements:
 - ✅ Fully responsive login + dashboard.
@@ -67,7 +67,7 @@ Exit criteria:
 - ✅ All mutating endpoints protected by CSRF.
 - ✅ Auth endpoints rate-limited.
 - ✅ Mobile QA pass on key views (320/375/768 widths).
-- ⬜ No critical security findings in internal checklist.
+- ✅ No critical security findings in internal checklist.
 
 ---
 
@@ -79,8 +79,8 @@ Scope:
 - ✅ Strength meter for stored/generated passwords.
 - ✅ Vault item history/versioning and restore.
 - ⬜ Secure notes item type.
-- ⬜ Favorites and foldering/tags.
-- ⬜ Search enhancements (site, username, tags, notes).
+- ✅ Favorites and foldering/tags.
+- ✅ Search enhancements (site, username, tags, notes).
 - ✅ Import/export:
   - CSV import (common manager formats)
   - encrypted backup export/import
@@ -91,7 +91,7 @@ Mobile requirements:
 - Sticky key actions (Add, Search) in thumb-friendly zones.
 
 Exit criteria:
-- ⬜ Users can generate/store/manage credentials end-to-end.
+- ✅ Users can generate/store/manage credentials end-to-end.
 - ✅ Users can restore previous versions of an edited vault item.
 - ✅ Import/export roundtrip tested.
 - ⬜ Mobile flows complete without desktop dependency.
@@ -102,11 +102,11 @@ Exit criteria:
 Objective: Elevate security posture to market-competitive standards before extension.
 
 Scope:
-- Zero-knowledge migration plan and implementation steps.
+- ✅ Zero-knowledge migration plan and implementation steps (decision doc completed).
 - ✅ Optional TOTP 2FA (enroll, verify, recovery codes, disable flow).
 - ✅ Device/session management UI with remote logout of other sessions.
-- ⬜ Security events and login alerting page.
-- ⬜ Security review checklist aligned to OWASP ASVS subset.
+- ✅ Security events and login alerting page.
+- ✅ Security review checklist aligned to OWASP ASVS subset.
 
 Exit criteria:
 - ⬜ Client-side encryption key flow defined and implemented for new vault records.
@@ -209,9 +209,9 @@ Theme: Security baseline + architecture hygiene
 Tasks:
 - ✅ Implement CSRF token generation endpoint + validation middleware.
 - ✅ Add rate limiter for `/api/auth/login.php` and `/api/auth/register.php`.
-- ⬜ Centralize API error response schema.
+- ✅ Centralize API error response schema.
 - ✅ Add session expiration strategy and regenerate on privilege changes.
-- ⬜ Add `docs/security-checklist.md` initial draft.
+- ✅ Add `docs/security-checklist.md` initial draft.
 Acceptance:
 - ✅ CSRF validated on create/update/delete/logout/register/login.
 - ✅ Repeated failed login attempts throttle as expected.
@@ -249,21 +249,21 @@ Acceptance:
 ### Sprint 5
 Theme: Security trust upgrade (web)
 Tasks:
-- Zero-knowledge architecture decision doc + key management flow.
-- Security events page (login/session/critical vault actions).
-- ASVS-aligned checklist draft and gap closure.
+- ✅ Zero-knowledge architecture decision doc + key management flow.
+- ✅ Security events page (login/session/critical vault actions).
+- ✅ ASVS-aligned checklist draft and gap closure.
 Acceptance:
-- Zero-knowledge migration plan approved and tracked.
-- Security event visibility available to end users.
+- ✅ Zero-knowledge migration plan approved and tracked.
+- ✅ Security event visibility available to end users.
 
 ### Sprint 6
 Theme: Web competitive primitives
 Tasks:
-- Password health dashboard (weak/reused/old).
-- Tags/folders/favorites.
-- Search enhancements.
+- ✅ Password health dashboard (weak/reused/old).
+- ✅ Tags/folders/favorites.
+- ✅ Search enhancements.
 Acceptance:
-- Power-user web vault workflows are usable daily.
+- ✅ Power-user web vault workflows are usable daily.
 
 ### Sprint 7+
 Continue with web-first phases (sharing, mobile, launch), then extension phases.
@@ -292,20 +292,20 @@ Acceptance:
 ### Sprint 9
 Theme: Mobile + PWA hardening
 Tasks:
-- PWA installability + app manifest polish.
-- Mobile performance pass and accessibility pass.
-- Offline-safe UX boundaries for sensitive data.
+- ✅ PWA installability + app manifest polish.
+- ✅ Mobile performance pass and accessibility pass.
+- ✅ Offline-safe UX boundaries for sensitive data.
 Acceptance:
-- Mobile KPI and accessibility targets met.
+- ✅ Mobile KPI and accessibility targets met.
 
 ### Sprint 10
 Theme: Launch readiness foundations
 Tasks:
-- Billing/onboarding prep.
-- Support workflow and incident runbooks.
-- Analytics/privacy instrumentation baseline.
+- ✅ Billing/onboarding prep.
+- ✅ Support workflow and incident runbooks.
+- ✅ Analytics/privacy instrumentation baseline.
 Acceptance:
-- Launch-readiness checklist in place.
+- ✅ Launch-readiness checklist in place.
 
 ### Sprint 11
 Theme: Extension MVP scaffold

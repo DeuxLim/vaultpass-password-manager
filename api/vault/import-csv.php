@@ -41,8 +41,8 @@ try {
     }
 
     $insertStmt = $pdo->prepare(
-        'INSERT INTO vault_items (user_id, site, username_enc, password_enc, notes_enc)
-         VALUES (:user_id, :site, :username_enc, :password_enc, :notes_enc)'
+        'INSERT INTO vault_items (user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc)
+         VALUES (:user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc)'
     );
 
     foreach ($rows as $index => $row) {
@@ -52,9 +52,40 @@ try {
         }
 
         $site = trim((string)($row['site'] ?? ''));
+        $folder = trim((string)($row['folder'] ?? ''));
+        $isFavoriteRaw = strtolower(trim((string)($row['is_favorite'] ?? '0')));
+        $isFavorite = in_array($isFavoriteRaw, ['1', 'true', 'yes', 'y'], true);
+        $tagsInput = $row['tags'] ?? [];
         $username = trim((string)($row['username'] ?? ''));
         $password = (string)($row['password'] ?? '');
         $notes = trim((string)($row['notes'] ?? ''));
+
+        if (is_string($tagsInput)) {
+            $tagsInput = array_map('trim', explode(',', $tagsInput));
+        }
+        if (!is_array($tagsInput)) {
+            $tagsInput = [];
+        }
+
+        $normalizedTags = [];
+        foreach ($tagsInput as $tag) {
+            if (!is_string($tag)) {
+                continue;
+            }
+
+            $value = trim($tag);
+            if ($value === '') {
+                continue;
+            }
+
+            $value = mb_substr($value, 0, 40);
+            $normalizedTags[$value] = true;
+
+            if (count($normalizedTags) >= 20) {
+                break;
+            }
+        }
+        $tags = array_keys($normalizedTags);
 
         if ($site === '' || $username === '' || $password === '') {
             $errors[] = ['row' => $index + 1, 'error' => 'Site, username, and password are required'];
@@ -64,6 +95,9 @@ try {
         $insertStmt->execute([
             'user_id' => $userId,
             'site' => mb_substr($site, 0, 191),
+            'folder' => mb_substr($folder, 0, 120),
+            'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
+            'is_favorite' => $isFavorite ? 1 : 0,
             'username_enc' => encrypt_value($username),
             'password_enc' => encrypt_value($password),
             'notes_enc' => encrypt_value($notes),

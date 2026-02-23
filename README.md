@@ -110,6 +110,12 @@ If you already created the database before two-factor auth was added, run:
 mysql -u root -p < sql/migrations/004_add_user_two_factor.sql
 ```
 
+If you already created the database before vault metadata (folders/tags/favorites) was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/005_add_vault_metadata.sql
+```
+
 2. Run app:
 
 ```bash
@@ -120,6 +126,34 @@ php -S localhost:8000 -t public
 
 - `http://localhost:8000/`
 - `http://localhost:8000/pages/login.html`
+
+PWA support is enabled with:
+
+- `public/manifest.webmanifest`
+- `public/sw.js`
+- `public/script/pwa-init.js`
+
+Security boundary: service worker does not cache `/api/*` responses and does not cache dashboard data pages.
+
+## Automated Checks
+
+Run lint/static syntax checks:
+
+```bash
+./scripts/lint.sh
+```
+
+Run a basic smoke test (server must be running):
+
+```bash
+./scripts/smoke.sh http://localhost:8000
+```
+
+Security checklist is tracked in:
+
+```text
+docs/security-checklist.md
+```
 
 ## Security Notes
 

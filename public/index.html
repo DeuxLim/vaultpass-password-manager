@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VaultPass</title>
+  <meta name="theme-color" content="#0071e3">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="./styles/landing-apple.css">
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div class="bg-orb orb-a"></div>
   <div class="bg-orb orb-b"></div>
 
@@ -23,7 +26,7 @@
     <a class="btn btn-ghost" href="/pages/login.html">Sign In</a>
   </header>
 
-  <main>
+  <main id="mainContent">
     <section class="hero">
       <div class="hero-copy">
         <p class="eyebrow">Password manager, reimagined</p>
@@ -87,5 +90,6 @@
   <footer class="footer">
     <p>© 2026 VaultPass</p>
   </footer>
+  <script src="/script/pwa-init.js"></script>
 </body>
 </html>

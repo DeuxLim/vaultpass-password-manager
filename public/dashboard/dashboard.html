@@ -4,9 +4,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>VaultPass Dashboard</title>
+  <meta name="theme-color" content="#0071e3">
+  <link rel="manifest" href="/manifest.webmanifest">
   <link rel="stylesheet" href="dashboard.css">
 </head>
 <body>
+  <a class="skip-link" href="#mainContent">Skip to main content</a>
   <div class="bg-orb orb-a"></div>
   <div class="bg-orb orb-b"></div>
 
@@ -23,16 +26,55 @@
     </div>
   </header>
 
-  <main class="dashboard-shell">
+  <main id="mainContent" class="dashboard-shell">
     <section class="headline-panel">
       <div>
         <p class="eyebrow">Vault dashboard</p>
         <h1 id="welcomeText">Your password vault</h1>
       </div>
       <div class="header-actions">
-        <input id="searchInput" type="search" placeholder="Search site or username" aria-label="Search passwords">
+        <input id="searchInput" type="search" placeholder="Search site, username, folder, tags, notes" aria-label="Search passwords">
         <button id="addItemBtn" class="btn btn-primary">Add Password</button>
       </div>
+    </section>
+
+    <section class="health-panel" aria-label="Vault health overview">
+      <article class="health-card">
+        <p class="health-label">Total entries</p>
+        <p id="healthTotal" class="health-value">0</p>
+      </article>
+      <article class="health-card">
+        <p class="health-label">Weak passwords</p>
+        <p id="healthWeak" class="health-value is-weak">0</p>
+      </article>
+      <article class="health-card">
+        <p class="health-label">Reused passwords</p>
+        <p id="healthReused" class="health-value is-warning">0</p>
+      </article>
+      <article class="health-card">
+        <p class="health-label">Old (&gt; 180 days)</p>
+        <p id="healthOld" class="health-value is-old">0</p>
+      </article>
+    </section>
+
+    <section class="filters-panel" aria-label="Vault filters">
+      <label for="favoriteFilter" class="sr-only">Favorite filter</label>
+      <select id="favoriteFilter">
+        <option value="all">All entries</option>
+        <option value="favorites">Favorites only</option>
+        <option value="non-favorites">Non-favorites only</option>
+      </select>
+      <label for="folderFilter" class="sr-only">Folder filter</label>
+      <select id="folderFilter">
+        <option value="all">All folders</option>
+      </select>
+      <label for="sortFilter" class="sr-only">Sort by</label>
+      <select id="sortFilter">
+        <option value="updated_desc">Recently updated</option>
+        <option value="created_desc">Recently created</option>
+        <option value="site_asc">Site (A-Z)</option>
+        <option value="site_desc">Site (Z-A)</option>
+      </select>
     </section>
 
     <section class="table-card">
@@ -40,7 +82,10 @@
         <caption class="sr-only">Saved vault credentials</caption>
         <thead>
           <tr>
+            <th scope="col">Fav</th>
             <th scope="col">Site</th>
+            <th scope="col">Folder</th>
+            <th scope="col">Tags</th>
             <th scope="col">Username</th>
             <th scope="col">Password</th>
             <th scope="col">Notes</th>
@@ -91,6 +136,17 @@
 
       <label for="notesInput">Notes</label>
       <textarea id="notesInput" rows="3" placeholder="Optional notes"></textarea>
+
+      <label for="folderInput">Folder</label>
+      <input type="text" id="folderInput" placeholder="Personal, Work, Finance">
+
+      <label for="tagsInput">Tags (comma-separated)</label>
+      <input type="text" id="tagsInput" placeholder="banking, critical, shared">
+
+      <label class="favorite-toggle-input" for="favoriteInput">
+        <input type="checkbox" id="favoriteInput">
+        Mark as favorite
+      </label>
 
       <p id="modalError" class="form-error" role="alert" aria-live="assertive"></p>
 
@@ -144,6 +200,13 @@
       </section>
 
       <div id="sessionsList" class="sessions-list"></div>
+      <section class="events-panel">
+        <div class="events-header">
+          <h3>Recent Security Events</h3>
+          <button type="button" id="refreshEventsBtn" class="btn btn-ghost">Refresh</button>
+        </div>
+        <div id="securityEventsList" class="events-list"></div>
+      </section>
       <menu>
         <button type="button" id="sessionsCloseBtn" class="btn btn-ghost">Close</button>
         <button type="button" id="revokeOthersBtn" class="btn btn-primary">Revoke Other Sessions</button>
@@ -207,5 +270,6 @@
 
   <script src="../script/api.js"></script>
   <script src="dashboard.js"></script>
+  <script src="../script/pwa-init.js"></script>
 </body>
 </html>

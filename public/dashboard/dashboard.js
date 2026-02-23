@@ -2,6 +2,9 @@ const tableBody = document.getElementById('vaultTableBody');
 const cardsBody = document.getElementById('vaultCards');
 const emptyState = document.getElementById('emptyState');
 const searchInput = document.getElementById('searchInput');
+const favoriteFilter = document.getElementById('favoriteFilter');
+const folderFilter = document.getElementById('folderFilter');
+const sortFilter = document.getElementById('sortFilter');
 const addItemBtn = document.getElementById('addItemBtn');
 const backupBtn = document.getElementById('backupBtn');
 const securityBtn = document.getElementById('securityBtn');
@@ -22,6 +25,8 @@ const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
 const revokeOthersBtn = document.getElementById('revokeOthersBtn');
 const sessionsError = document.getElementById('sessionsError');
 const sessionsList = document.getElementById('sessionsList');
+const refreshEventsBtn = document.getElementById('refreshEventsBtn');
+const securityEventsList = document.getElementById('securityEventsList');
 const twofaStatusText = document.getElementById('twofaStatusText');
 const twofaSetupBtn = document.getElementById('twofaSetupBtn');
 const twofaDisableBtn = document.getElementById('twofaDisableBtn');
@@ -57,12 +62,19 @@ const notesInput = document.getElementById('notesInput');
 const passwordStrengthLabel = document.getElementById('passwordStrengthLabel');
 const passwordStrengthFill = document.getElementById('passwordStrengthFill');
 const generatePasswordBtn = document.getElementById('generatePasswordBtn');
+const folderInput = document.getElementById('folderInput');
+const tagsInput = document.getElementById('tagsInput');
+const favoriteInput = document.getElementById('favoriteInput');
 const generatorLength = document.getElementById('generatorLength');
 const generatorLengthValue = document.getElementById('generatorLengthValue');
 const generatorUpper = document.getElementById('generatorUpper');
 const generatorLower = document.getElementById('generatorLower');
 const generatorNumbers = document.getElementById('generatorNumbers');
 const generatorSymbols = document.getElementById('generatorSymbols');
+const healthTotal = document.getElementById('healthTotal');
+const healthWeak = document.getElementById('healthWeak');
+const healthReused = document.getElementById('healthReused');
+const healthOld = document.getElementById('healthOld');
 
 let items = [];
 let historyItemId = 0;
@@ -109,11 +121,93 @@ function showToast(message, type = 'success') {
 
 function filteredItems() {
   const term = (searchInput?.value || '').toLowerCase().trim();
-  if (!term) return items;
-  return items.filter((item) => {
-    const haystack = `${item.site} ${item.username} ${item.notes || ''}`.toLowerCase();
+  const favoriteMode = favoriteFilter?.value || 'all';
+  const folderMode = folderFilter?.value || 'all';
+  const sortMode = sortFilter?.value || 'updated_desc';
+
+  let filtered = items.filter((item) => {
+    if (favoriteMode === 'favorites' && !item.is_favorite) return false;
+    if (favoriteMode === 'non-favorites' && item.is_favorite) return false;
+    if (folderMode !== 'all' && (item.folder || '') !== folderMode) return false;
+
+    if (!term) return true;
+    const tagsText = Array.isArray(item.tags) ? item.tags.join(' ') : '';
+    const haystack = `${item.site} ${item.username} ${item.folder || ''} ${tagsText} ${item.notes || ''}`.toLowerCase();
     return haystack.includes(term);
   });
+
+  filtered = [...filtered];
+  if (sortMode === 'site_asc') {
+    filtered.sort((a, b) => String(a.site).localeCompare(String(b.site)));
+  } else if (sortMode === 'site_desc') {
+    filtered.sort((a, b) => String(b.site).localeCompare(String(a.site)));
+  } else if (sortMode === 'created_desc') {
+    filtered.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+  } else {
+    filtered.sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime());
+  }
+
+  return filtered;
+}
+
+function renderTags(tags) {
+  if (!Array.isArray(tags) || tags.length === 0) return '—';
+  return tags.map((tag) => `<span class="tag-pill">${escapeHtml(tag)}</span>`).join('');
+}
+
+function parseTagsInput(rawValue) {
+  const raw = String(rawValue || '');
+  const dedup = new Map();
+  raw.split(',').forEach((value) => {
+    const tag = value.trim();
+    if (!tag) return;
+    dedup.set(tag.slice(0, 40), true);
+  });
+  return Array.from(dedup.keys()).slice(0, 20);
+}
+
+function populateFolderFilter() {
+  if (!folderFilter) return;
+
+  const selected = folderFilter.value || 'all';
+  const folders = [...new Set(items.map((item) => String(item.folder || '').trim()).filter((value) => value !== ''))]
+    .sort((a, b) => a.localeCompare(b));
+
+  folderFilter.innerHTML = [
+    '<option value="all">All folders</option>',
+    ...folders.map((folder) => `<option value="${escapeHtml(folder)}">${escapeHtml(folder)}</option>`),
+  ].join('');
+
+  if (selected !== 'all' && folders.includes(selected)) {
+    folderFilter.value = selected;
+  }
+}
+
+function renderHealthSummary() {
+  const total = items.length;
+  const weak = items.filter((item) => scorePassword(item.password) < 60).length;
+
+  const passwordCounts = new Map();
+  items.forEach((item) => {
+    const value = String(item.password || '');
+    if (!value) return;
+    passwordCounts.set(value, (passwordCounts.get(value) || 0) + 1);
+  });
+  const reused = Array.from(passwordCounts.values()).filter((count) => count > 1).reduce((sum, count) => sum + count, 0);
+
+  const now = Date.now();
+  const oldThresholdDays = 180;
+  const old = items.filter((item) => {
+    const updatedAt = new Date(item.updated_at).getTime();
+    if (Number.isNaN(updatedAt)) return false;
+    const ageDays = (now - updatedAt) / (1000 * 60 * 60 * 24);
+    return ageDays >= oldThresholdDays;
+  }).length;
+
+  if (healthTotal) healthTotal.textContent = String(total);
+  if (healthWeak) healthWeak.textContent = String(weak);
+  if (healthReused) healthReused.textContent = String(reused);
+  if (healthOld) healthOld.textContent = String(old);
 }
 
 function formatDateTime(value) {
@@ -510,6 +604,8 @@ async function loadHistory(itemId) {
         </div>
         <p class="history-entry-meta">Username: ${escapeHtml(version.username)}</p>
         <p class="history-entry-meta">Site: ${escapeHtml(version.site)}</p>
+        <p class="history-entry-meta">Folder: ${escapeHtml(version.folder || '—')}</p>
+        <p class="history-entry-meta">Tags: ${escapeHtml(Array.isArray(version.tags) && version.tags.length > 0 ? version.tags.join(', ') : '—')}</p>
         <p class="history-entry-meta">Notes: ${notesPreview}</p>
         <button
           type="button"
@@ -567,6 +663,37 @@ function renderSessionsList(sessions) {
   }).join('');
 }
 
+function formatEventName(eventType) {
+  const value = String(eventType || '').trim();
+  if (!value) return 'Unknown event';
+  return value.replaceAll('.', ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function renderSecurityEvents(events) {
+  if (!securityEventsList) return;
+
+  if (!Array.isArray(events) || events.length === 0) {
+    securityEventsList.innerHTML = '<p class="history-empty">No security events yet.</p>';
+    return;
+  }
+
+  securityEventsList.innerHTML = events.map((event) => `
+    <article class="event-item">
+      <p class="event-title">${escapeHtml(formatEventName(event.event_type))}</p>
+      <p class="event-meta">When: ${escapeHtml(formatDateTime(event.created_at))}</p>
+      <p class="event-meta">IP: ${escapeHtml(event.ip_address || 'unknown')}</p>
+    </article>
+  `).join('');
+}
+
+async function loadSecurityEvents() {
+  if (!securityEventsList) return;
+  securityEventsList.innerHTML = '<p class="history-empty">Loading security events...</p>';
+
+  const data = await requestApi('../api/auth/security-events.php?limit=40', 'GET');
+  renderSecurityEvents(data.events || []);
+}
+
 async function loadSessions() {
   sessionsError.textContent = '';
   sessionsList.innerHTML = '<p class="history-empty">Loading sessions...</p>';
@@ -594,7 +721,7 @@ async function openSessionsModal(triggerElement = null) {
   sessionsModal.showModal();
 
   try {
-    await Promise.all([loadSessions(), loadTwoFactorStatus()]);
+    await Promise.all([loadSessions(), loadTwoFactorStatus(), loadSecurityEvents()]);
   } catch (error) {
     sessionsError.textContent = error.message || 'Unable to load sessions.';
   }
@@ -627,7 +754,19 @@ function renderTable() {
 
   tableBody.innerHTML = visible.map((item) => `
     <tr>
+      <td class="favorite-cell">
+        <button
+          type="button"
+          data-action="toggle-favorite"
+          data-id="${item.id}"
+          class="favorite-btn ${item.is_favorite ? 'is-favorite' : ''}"
+          aria-label="${item.is_favorite ? 'Remove favorite' : 'Mark as favorite'} for ${escapeHtml(item.site)}"
+          title="${item.is_favorite ? 'Favorite' : 'Not favorite'}"
+        >★</button>
+      </td>
       <td>${escapeHtml(item.site)}</td>
+      <td>${escapeHtml(item.folder || '—')}</td>
+      <td>${renderTags(item.tags)}</td>
       <td>${escapeHtml(item.username)}</td>
       <td>${escapeHtml(item.password)}</td>
       <td>${escapeHtml(item.notes || '')}</td>
@@ -647,6 +786,26 @@ function renderTable() {
         <h3>${escapeHtml(item.site)}</h3>
       </header>
       <dl>
+        <div>
+          <dt>Favorite</dt>
+          <dd>
+            <button
+              type="button"
+              data-action="toggle-favorite"
+              data-id="${item.id}"
+              class="favorite-btn ${item.is_favorite ? 'is-favorite' : ''}"
+              aria-label="${item.is_favorite ? 'Remove favorite' : 'Mark as favorite'} for ${escapeHtml(item.site)}"
+            >★</button>
+          </dd>
+        </div>
+        <div>
+          <dt>Folder</dt>
+          <dd>${escapeHtml(item.folder || '—')}</dd>
+        </div>
+        <div>
+          <dt>Tags</dt>
+          <dd>${renderTags(item.tags)}</dd>
+        </div>
         <div>
           <dt>Username</dt>
           <dd>${escapeHtml(item.username)}</dd>
@@ -682,6 +841,9 @@ function openModal(item = null, triggerElement = null) {
     usernameInput.value = '';
     passwordInput.value = '';
     notesInput.value = '';
+    if (folderInput) folderInput.value = '';
+    if (tagsInput) tagsInput.value = '';
+    if (favoriteInput) favoriteInput.checked = false;
     if (generatorLength) generatorLength.value = '16';
     if (generatorLengthValue) generatorLengthValue.textContent = '16';
     if (generatorUpper) generatorUpper.checked = true;
@@ -695,6 +857,9 @@ function openModal(item = null, triggerElement = null) {
     usernameInput.value = item.username;
     passwordInput.value = item.password;
     notesInput.value = item.notes || '';
+    if (folderInput) folderInput.value = item.folder || '';
+    if (tagsInput) tagsInput.value = Array.isArray(item.tags) ? item.tags.join(', ') : '';
+    if (favoriteInput) favoriteInput.checked = Boolean(item.is_favorite);
   }
 
   modal.showModal();
@@ -724,6 +889,8 @@ async function loadSession() {
 async function loadItems() {
   const data = await requestApi('../api/vault/list.php', 'GET');
   items = data.items || [];
+  populateFolderFilter();
+  renderHealthSummary();
   renderTable();
 }
 
@@ -742,6 +909,9 @@ historyCloseBtn?.addEventListener('click', closeHistoryModal);
 sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
 backupCloseBtn?.addEventListener('click', closeBackupModal);
 searchInput?.addEventListener('input', renderTable);
+favoriteFilter?.addEventListener('change', renderTable);
+folderFilter?.addEventListener('change', renderTable);
+sortFilter?.addEventListener('change', renderTable);
 passwordInput?.addEventListener('input', updatePasswordStrength);
 generatorLength?.addEventListener('input', () => {
   if (generatorLengthValue) {
@@ -807,6 +977,15 @@ runImportCsvBtn?.addEventListener('click', async () => {
     backupError.textContent = error.message || 'Unable to import CSV.';
   }
 });
+refreshEventsBtn?.addEventListener('click', async () => {
+  sessionsError.textContent = '';
+  try {
+    await loadSecurityEvents();
+    showToast('Security events refreshed.');
+  } catch (error) {
+    sessionsError.textContent = error.message || 'Unable to refresh security events.';
+  }
+});
 twofaSetupBtn?.addEventListener('click', async () => {
   try {
     await startTwoFactorSetup();
@@ -851,6 +1030,7 @@ historyModal?.addEventListener('close', () => {
 sessionsModal?.addEventListener('close', () => {
   sessionsError.textContent = '';
   sessionsList.innerHTML = '';
+  if (securityEventsList) securityEventsList.innerHTML = '';
   resetTwoFactorSetupUi();
   if (twofaStatusText) twofaStatusText.textContent = 'Checking status...';
 
@@ -909,6 +1089,9 @@ vaultForm?.addEventListener('submit', async (e) => {
     username: usernameInput.value.trim(),
     password: passwordInput.value,
     notes: notesInput.value.trim(),
+    folder: folderInput?.value.trim() || '',
+    tags: parseTagsInput(tagsInput?.value || ''),
+    is_favorite: favoriteInput?.checked ? 1 : 0,
   };
 
   if (!payload.site || !payload.username || !payload.password) {
@@ -973,6 +1156,15 @@ async function handleVaultAction(target) {
 
   if (action === 'edit') {
     openModal(item, actionButton);
+    return;
+  }
+
+  if (action === 'toggle-favorite') {
+    await csrfReady;
+    const nextValue = item.is_favorite ? 0 : 1;
+    await requestApi('../api/vault/toggle-favorite.php', 'POST', { id, is_favorite: nextValue });
+    await loadItems();
+    showToast(nextValue === 1 ? `Marked ${item.site} as favorite.` : `Removed ${item.site} from favorites.`);
     return;
   }
 

@@ -13,22 +13,62 @@ $site = trim((string)($body['site'] ?? ''));
 $username = trim((string)($body['username'] ?? ''));
 $password = (string)($body['password'] ?? '');
 $notes = trim((string)($body['notes'] ?? ''));
+$folder = trim((string)($body['folder'] ?? ''));
+$isFavorite = ((int)($body['is_favorite'] ?? 0)) === 1;
+$tagsInput = $body['tags'] ?? [];
+
+if (!is_array($tagsInput)) {
+    $tagsInput = [];
+}
+
+$normalizedTags = [];
+foreach ($tagsInput as $tag) {
+    if (!is_string($tag)) {
+        continue;
+    }
+
+    $value = trim($tag);
+    if ($value === '') {
+        continue;
+    }
+
+    $value = mb_substr($value, 0, 40);
+    $normalizedTags[$value] = true;
+
+    if (count($normalizedTags) >= 20) {
+        break;
+    }
+}
+
+$tags = array_keys($normalizedTags);
 
 if ($site === '' || $username === '' || $password === '') {
     json_response(['ok' => false, 'error' => 'Site, username, and password are required'], 422);
 }
 
 $pdo = db();
-$stmt = $pdo->prepare('INSERT INTO vault_items (user_id, site, username_enc, password_enc, notes_enc) VALUES (:user_id, :site, :username_enc, :password_enc, :notes_enc)');
+$stmt = $pdo->prepare(
+    'INSERT INTO vault_items (user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc)
+     VALUES (:user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc)'
+);
 $stmt->execute([
     'user_id' => $userId,
     'site' => $site,
+    'folder' => mb_substr($folder, 0, 120),
+    'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
+    'is_favorite' => $isFavorite ? 1 : 0,
     'username_enc' => encrypt_value($username),
     'password_enc' => encrypt_value($password),
     'notes_enc' => encrypt_value($notes),
 ]);
 
 $newId = (int)$pdo->lastInsertId();
-audit_log('vault.create', $userId, ['vault_item_id' => $newId, 'site' => $site]);
+audit_log('vault.create', $userId, [
+    'vault_item_id' => $newId,
+    'site' => $site,
+    'folder' => $folder,
+    'tag_count' => count($tags),
+    'is_favorite' => $isFavorite,
+]);
 
 json_response(['ok' => true, 'id' => $newId], 201);

@@ -15,13 +15,22 @@ if (trim($passphrase) === '') {
 }
 
 $pdo = db();
-$stmt = $pdo->prepare('SELECT id, site, username_enc, password_enc, notes_enc, created_at, updated_at FROM vault_items WHERE user_id = :user_id ORDER BY created_at DESC');
+$stmt = $pdo->prepare(
+    'SELECT id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, created_at, updated_at
+     FROM vault_items
+     WHERE user_id = :user_id
+     ORDER BY created_at DESC'
+);
 $stmt->execute(['user_id' => $userId]);
 $rows = $stmt->fetchAll();
 
 $items = array_map(static function (array $row): array {
+    $tags = json_decode((string)($row['tags_json'] ?? ''), true);
     return [
         'site' => (string)$row['site'],
+        'folder' => (string)($row['folder'] ?? ''),
+        'tags' => is_array($tags) ? array_values(array_filter($tags, static fn ($tag): bool => is_string($tag) && trim($tag) !== '')) : [],
+        'is_favorite' => ((int)($row['is_favorite'] ?? 0)) === 1,
         'username' => decrypt_value((string)$row['username_enc']),
         'password' => decrypt_value((string)$row['password_enc']),
         'notes' => decrypt_value((string)$row['notes_enc']),

@@ -30,6 +30,25 @@ body {
   overflow-x: hidden;
 }
 
+.skip-link {
+  position: absolute;
+  left: 12px;
+  top: -44px;
+  z-index: 100;
+  background: #fff;
+  color: #1d1d1f;
+  border: 1px solid rgba(0, 0, 0, 0.18);
+  border-radius: 10px;
+  padding: 10px 12px;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.skip-link:focus {
+  top: 12px;
+}
+
 .bg-orb {
   position: fixed;
   border-radius: 999px;
@@ -163,6 +182,7 @@ h1 {
 .btn {
   text-decoration: none;
   padding: 12px 18px;
+  min-height: 44px;
   border-radius: 999px;
   font-size: 14px;
   font-weight: 600;
@@ -245,6 +265,8 @@ h1 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px;
+  content-visibility: auto;
+  contain-intrinsic-size: 600px;
 }
 
 .feature-card {
@@ -275,6 +297,8 @@ h1 {
   background: var(--surface-solid);
   box-shadow: var(--shadow-soft);
   padding: 34px;
+  content-visibility: auto;
+  contain-intrinsic-size: 420px;
 }
 
 .callout h2,
@@ -352,5 +376,20 @@ h1 {
   .btn {
     width: 100%;
     text-align: center;
+  }
+
+  .bg-orb {
+    opacity: 0.25;
+    filter: blur(60px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
   }
 }
