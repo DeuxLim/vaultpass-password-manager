@@ -180,6 +180,10 @@ function formSubmitHandler(form) {
     const password = String(fields.password?.value || '');
     if (!username || !password) return;
 
+    const siteLabel = window.location.hostname || 'this site';
+    const shouldSave = window.confirm(`Save this login to VaultPass for ${siteLabel}?`);
+    if (!shouldSave) return;
+
     chrome.runtime.sendMessage({
       type: 'EXT_SAVE_SUBMITTED_LOGIN',
       payload: {
@@ -187,6 +191,14 @@ function formSubmitHandler(form) {
         username,
         password,
       },
+    }, (response) => {
+      if (chrome.runtime.lastError) return;
+      if (!response?.ok) return;
+      if (response.mode === 'created') {
+        setStatus('Saved as new VaultPass item');
+      } else if (response.mode === 'updated') {
+        setStatus('Updated existing VaultPass item');
+      }
     });
   };
 }

@@ -33,8 +33,8 @@ Use:
 | 11 | Dynamic form injected after load | Autofill prompt still appears and fills |
 | 12 | Subdomain simulation label (`app.localhost`) | Domain match still returns localhost creds |
 | 13 | Popup manual Fill action | Active tab receives fill and updates fields |
-| 14 | Submit populated form for existing credential | Existing vault entry updated |
-| 15 | Submit populated form for new username | New entry created or existing updated by match logic |
+| 14 | Submit populated form for existing credential | Save confirm prompt appears; confirming updates existing vault entry |
+| 15 | Submit populated form for new username | Save confirm prompt appears; confirming creates new entry or updates match |
 | 16 | Submit with empty username | No save call performed |
 | 17 | Submit with empty password | No save call performed |
 | 18 | Reload page after save | Prompt still appears with credentials |
