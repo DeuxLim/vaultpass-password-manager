@@ -155,6 +155,30 @@ Security checklist is tracked in:
 docs/security-checklist.md
 ```
 
+## Chrome Extension MVP (Sprint 11)
+
+Extension source is in:
+
+```text
+extension/
+```
+
+Load it in Chrome:
+
+1. Open `chrome://extensions`
+2. Enable `Developer mode`
+3. Click `Load unpacked`
+4. Select the `extension/` folder
+
+Run web app first (example):
+
+```bash
+php -S localhost:8000 -t public
+```
+
+In extension popup, open `Settings` and confirm `Backend base URL` matches your running app URL.
+Then sign in via `Open Login`, return to popup, and click `Refresh`.
+
 ## Security Notes
 
 - User login passwords are hashed with `password_hash()` (bcrypt).

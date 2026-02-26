@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultPass Extension</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <main class="shell">
+    <header class="head">
+      <div>
+        <p class="eyebrow">VaultPass</p>
+        <h1>Quick Vault</h1>
+      </div>
+      <button id="settingsToggle" class="btn ghost" type="button">Settings</button>
+    </header>
+
+    <section id="settingsPanel" class="card" hidden>
+      <label for="baseUrlInput">Backend base URL</label>
+      <div class="row">
+        <input id="baseUrlInput" type="url" placeholder="http://localhost:8000">
+        <button id="saveBaseUrlBtn" class="btn" type="button">Save</button>
+      </div>
+      <p class="hint">Use your running VaultPass web URL.</p>
+    </section>
+
+    <section id="authPanel" class="card auth-card">
+      <p id="authStatus" class="muted">Checking session...</p>
+      <button id="openLoginBtn" class="btn" type="button" hidden>Open Login</button>
+      <button id="refreshBtn" class="btn ghost" type="button" hidden>Refresh</button>
+    </section>
+
+    <section id="vaultPanel" class="card" hidden>
+      <input id="searchInput" type="search" placeholder="Search site, username, notes">
+      <div id="vaultList" class="vault-list"></div>
+      <p id="emptyState" class="muted" hidden>No entries match your search.</p>
+    </section>
+
+    <p id="errorText" class="error" role="alert" aria-live="polite"></p>
+  </main>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>
