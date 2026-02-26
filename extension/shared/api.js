@@ -1,4 +1,5 @@
 const DEFAULT_BASE_URL = 'http://localhost:8000';
+let csrfToken = null;
 
 export async function getBaseUrl() {
   const stored = await chrome.storage.sync.get(['vaultpass_base_url']);
@@ -13,10 +14,34 @@ export async function setBaseUrl(baseUrl) {
 }
 
 export async function apiRequest(path, method = 'GET', body = null) {
+  return apiRequestWithRetry(path, method, body, true);
+}
+
+function isMutatingMethod(method) {
+  return ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method.toUpperCase());
+}
+
+async function fetchCsrfToken() {
+  if (csrfToken) {
+    return csrfToken;
+  }
+
+  const data = await apiRequestWithRetry('/api/auth/csrf.php', 'GET', null, false);
+  const token = String(data?.csrf_token || '').trim();
+  if (!token) {
+    throw new Error('Unable to load CSRF token');
+  }
+
+  csrfToken = token;
+  return csrfToken;
+}
+
+async function apiRequestWithRetry(path, method = 'GET', body = null, retryOnCsrfError = true) {
   const baseUrl = await getBaseUrl();
   const url = `${baseUrl}${path.startsWith('/') ? path : `/${path}`}`;
+  const upperMethod = method.toUpperCase();
   const options = {
-    method,
+    method: upperMethod,
     credentials: 'include',
     headers: {
       Accept: 'application/json',
@@ -28,6 +53,11 @@ export async function apiRequest(path, method = 'GET', body = null) {
     options.body = JSON.stringify(body);
   }
 
+  if (isMutatingMethod(upperMethod)) {
+    const token = await fetchCsrfToken();
+    options.headers['X-CSRF-Token'] = token;
+  }
+
   const response = await fetch(url, options);
   let data = null;
 
@@ -35,6 +65,13 @@ export async function apiRequest(path, method = 'GET', body = null) {
     data = await response.json();
   } catch (_error) {
     throw new Error(`Request failed (${response.status})`);
+  }
+
+  if (retryOnCsrfError && isMutatingMethod(upperMethod) && response.status === 403) {
+    csrfToken = null;
+    const token = await fetchCsrfToken();
+    options.headers['X-CSRF-Token'] = token;
+    return apiRequestWithRetry(path, method, body, false);
   }
 
   if (!response.ok || data?.ok === false) {

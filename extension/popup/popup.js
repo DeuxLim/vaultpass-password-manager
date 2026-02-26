@@ -42,6 +42,7 @@ function renderList() {
       <h2>${escapeHtml(item.site)}</h2>
       <p class="vault-meta">${escapeHtml(item.username)}</p>
       <div class="item-actions">
+        <button type="button" data-action="fill" data-id="${item.id}">Fill</button>
         <button type="button" data-action="copy-user" data-id="${item.id}">Copy User</button>
         <button type="button" data-action="copy-pass" data-id="${item.id}">Copy Pass</button>
       </div>
@@ -100,14 +101,27 @@ vaultList.addEventListener('click', async (event) => {
   if (!item) return;
 
   try {
-    if (button.dataset.action === 'copy-user') {
+    if (button.dataset.action === 'fill') {
+      const response = await chrome.runtime.sendMessage({
+        type: 'EXT_FILL_ACTIVE_TAB',
+        credential: {
+          id: item.id,
+          site: item.site,
+          username: item.username,
+          password: item.password,
+        },
+      });
+      if (!response?.ok) {
+        throw new Error(response?.error || 'Unable to fill in page');
+      }
+    } else if (button.dataset.action === 'copy-user') {
       await navigator.clipboard.writeText(item.username);
     } else if (button.dataset.action === 'copy-pass') {
       await navigator.clipboard.writeText(item.password);
     }
     setError('');
-  } catch (_error) {
-    setError('Clipboard copy failed.');
+  } catch (error) {
+    setError(error?.message || 'Action failed.');
   }
 });
 
