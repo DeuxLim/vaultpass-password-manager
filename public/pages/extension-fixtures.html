@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VaultPass Extension Fixtures</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Segoe UI", Arial, sans-serif;
+      background: linear-gradient(160deg, #f8fafc 0%, #eef4ff 100%);
+      color: #0f172a;
+    }
+    main {
+      width: min(1100px, 94vw);
+      margin: 24px auto 40px;
+      display: grid;
+      gap: 14px;
+    }
+    .head {
+      border: 1px solid #cbd5e1;
+      border-radius: 14px;
+      background: #ffffff;
+      padding: 14px;
+    }
+    .head h1 { margin: 0 0 8px; font-size: 22px; }
+    .head p { margin: 0; color: #475569; }
+    .grid {
+      display: grid;
+      gap: 10px;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    }
+    .card {
+      border: 1px solid #d9e2f1;
+      border-radius: 12px;
+      background: #ffffff;
+      padding: 10px;
+      display: grid;
+      gap: 8px;
+    }
+    .card h2 {
+      margin: 0;
+      font-size: 14px;
+      color: #1e3a8a;
+    }
+    .card small { color: #64748b; }
+    .stack { display: grid; gap: 6px; }
+    label { display: grid; gap: 4px; font-size: 12px; color: #334155; }
+    input {
+      min-height: 34px;
+      border: 1px solid #cbd5e1;
+      border-radius: 8px;
+      padding: 7px 9px;
+      font: inherit;
+      color: inherit;
+      background: #fff;
+    }
+    button {
+      min-height: 34px;
+      border: 1px solid #1d4ed8;
+      border-radius: 8px;
+      background: #2563eb;
+      color: #fff;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .inline { display: grid; gap: 6px; grid-template-columns: 1fr 1fr; }
+    @media (max-width: 600px) {
+      .inline { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="head">
+      <h1>Extension Autofill Fixtures</h1>
+      <p>Use this page with `docs/extension-autofill-test-matrix.md` to validate Sprint 12.</p>
+    </section>
+
+    <section class="grid" id="fixtures"></section>
+  </main>
+
+  <template id="fixtureTemplate">
+    <article class="card">
+      <h2></h2>
+      <small></small>
+      <form novalidate></form>
+    </article>
+  </template>
+
+  <script>
+    const fixtures = [
+      { id: 1, title: 'Basic email/password', note: 'email + password', user: { type: 'email', name: 'email' }, pass: { name: 'password' } },
+      { id: 2, title: 'Text username/password', note: 'text + password', user: { type: 'text', name: 'username' }, pass: { name: 'password' } },
+      { id: 3, title: 'Autocomplete username', note: 'autocomplete username', user: { type: 'text', name: 'login_user', autocomplete: 'username' }, pass: { name: 'login_pass' } },
+      { id: 4, title: 'Current password autocomplete', note: 'autocomplete current-password', user: { type: 'email', name: 'account_email' }, pass: { name: 'account_password', autocomplete: 'current-password' } },
+      { id: 5, title: 'Nested wrappers', note: 'extra wrappers around fields', user: { type: 'text', name: 'nested_user' }, pass: { name: 'nested_secret' }, nested: true },
+      { id: 6, title: 'Hidden CSRF input', note: 'hidden field should be ignored', user: { type: 'email', name: 'mail' }, pass: { name: 'pass' }, hiddenCsrf: true },
+      { id: 7, title: 'OTP extra field', note: 'username/password plus otp', user: { type: 'email', name: 'email_address' }, pass: { name: 'passwd' }, otp: true },
+      { id: 8, title: 'Two forms same card', note: 'second form is login', dual: true },
+      { id: 9, title: 'Unusual names', note: 'account_id + account_secret', user: { type: 'text', name: 'account_id' }, pass: { name: 'account_secret' } },
+      { id: 10, title: 'Readonly decoy', note: 'readonly decoy + editable target', user: { type: 'text', name: 'editable_login' }, pass: { name: 'editable_pass' }, decoy: true },
+      { id: 11, title: 'Dynamic form injection', note: 'added after page load', dynamic: true },
+      { id: 12, title: 'Subdomain simulation label', note: 'ui label app.localhost', user: { type: 'email', name: 'subdomain_email' }, pass: { name: 'subdomain_pass' }, badge: 'app.localhost' },
+      { id: 13, title: 'Popup manual Fill target', note: 'use popup Fill here', user: { type: 'text', name: 'popup_user' }, pass: { name: 'popup_pass' } },
+      { id: 14, title: 'Submit existing credential', note: 'should update matched record', user: { type: 'email', name: 'existing_email' }, pass: { name: 'existing_pass' } },
+      { id: 15, title: 'Submit new username', note: 'should create or update by match', user: { type: 'email', name: 'newuser_email' }, pass: { name: 'newuser_pass' } },
+      { id: 16, title: 'Empty username guard', note: 'leave username blank then submit', user: { type: 'text', name: 'blank_username' }, pass: { name: 'blank_username_pass' } },
+      { id: 17, title: 'Empty password guard', note: 'leave password blank then submit', user: { type: 'email', name: 'blank_pass_email' }, pass: { name: 'blank_pass' } },
+      { id: 18, title: 'Reload durability', note: 'refresh and retest prompt', user: { type: 'text', name: 'reload_user' }, pass: { name: 'reload_pass' } },
+      { id: 19, title: 'Dismiss and revisit', note: 'dismiss prompt then reload', user: { type: 'text', name: 'dismiss_user' }, pass: { name: 'dismiss_pass' } },
+      { id: 20, title: 'Multiple match chooser', note: 'create several localhost records', user: { type: 'email', name: 'multi_email' }, pass: { name: 'multi_pass' } },
+    ];
+
+    function buildInput({ type = 'text', name = '', autocomplete = '' }) {
+      const input = document.createElement('input');
+      input.type = type;
+      input.name = name;
+      input.autocomplete = autocomplete;
+      input.placeholder = name || type;
+      return input;
+    }
+
+    function formShell() {
+      const box = document.createElement('div');
+      box.className = 'stack';
+      return box;
+    }
+
+    function appendLoginFields(container, spec) {
+      const userLabel = document.createElement('label');
+      userLabel.textContent = 'Username';
+      userLabel.append(buildInput(spec.user || {}));
+
+      const passLabel = document.createElement('label');
+      passLabel.textContent = 'Password';
+      const pass = buildInput({ type: 'password', ...(spec.pass || {}) });
+      passLabel.append(pass);
+
+      container.append(userLabel, passLabel);
+    }
+
+    function buildFixtureCard(spec) {
+      const template = document.getElementById('fixtureTemplate');
+      const node = template.content.firstElementChild.cloneNode(true);
+      node.querySelector('h2').textContent = `#${spec.id} ${spec.title}`;
+      node.querySelector('small').textContent = spec.note;
+      const form = node.querySelector('form');
+      form.id = `fixture-form-${spec.id}`;
+
+      if (spec.badge) {
+        const badge = document.createElement('small');
+        badge.textContent = `Host label: ${spec.badge}`;
+        form.append(badge);
+      }
+
+      if (spec.hiddenCsrf) {
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.name = '_token';
+        hidden.value = 'fixture-csrf-value';
+        form.append(hidden);
+      }
+
+      if (spec.decoy) {
+        const decoy = document.createElement('label');
+        decoy.textContent = 'Readonly decoy';
+        const decoyInput = document.createElement('input');
+        decoyInput.type = 'text';
+        decoyInput.name = 'readonly_user';
+        decoyInput.value = 'do-not-fill';
+        decoyInput.readOnly = true;
+        decoy.append(decoyInput);
+        form.append(decoy);
+      }
+
+      if (spec.dual) {
+        const wrap = document.createElement('div');
+        wrap.className = 'inline';
+
+        const searchForm = document.createElement('div');
+        const searchStack = formShell();
+        const searchLabel = document.createElement('label');
+        searchLabel.textContent = 'Search';
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.name = 'q';
+        searchLabel.append(searchInput);
+        searchStack.append(searchLabel);
+        searchForm.append(searchStack);
+
+        const loginFormWrap = document.createElement('div');
+        const loginStack = formShell();
+        appendLoginFields(loginStack, {
+          user: { type: 'email', name: 'dual_email' },
+          pass: { name: 'dual_pass' },
+        });
+        loginFormWrap.append(loginStack);
+
+        wrap.append(searchForm, loginFormWrap);
+        form.append(wrap);
+      } else if (spec.nested) {
+        const outer = document.createElement('div');
+        const inner = formShell();
+        appendLoginFields(inner, spec);
+        outer.append(inner);
+        form.append(outer);
+      } else if (!spec.dynamic) {
+        appendLoginFields(form, spec);
+      }
+
+      if (spec.otp) {
+        const otp = document.createElement('label');
+        otp.textContent = 'OTP';
+        const otpInput = document.createElement('input');
+        otpInput.type = 'text';
+        otpInput.name = 'otp_code';
+        otp.append(otpInput);
+        form.append(otp);
+      }
+
+      const submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.textContent = 'Submit Fixture Form';
+      form.append(submit);
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const out = Object.fromEntries(data.entries());
+        console.log(`fixture ${spec.id} submit`, out);
+      });
+
+      if (spec.dynamic) {
+        setTimeout(() => {
+          const slot = formShell();
+          appendLoginFields(slot, {
+            user: { type: 'email', name: 'dynamic_email' },
+            pass: { name: 'dynamic_pass' },
+          });
+          form.prepend(slot);
+        }, 800);
+      }
+
+      return node;
+    }
+
+    const mount = document.getElementById('fixtures');
+    fixtures.forEach((spec) => mount.append(buildFixtureCard(spec)));
+  </script>
+</body>
+</html>

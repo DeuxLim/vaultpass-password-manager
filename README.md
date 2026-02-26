@@ -179,6 +179,22 @@ php -S localhost:8000 -t public
 In extension popup, open `Settings` and confirm `Backend base URL` matches your running app URL.
 Then sign in via `Open Login`, return to popup, and click `Refresh`.
 
+### Extension Autofill Validation (Sprint 12)
+
+Use the manual matrix:
+
+```text
+docs/extension-autofill-test-matrix.md
+```
+
+Open local fixture forms page:
+
+```text
+http://localhost:8000/pages/extension-fixtures.html
+```
+
+This page provides 20 form patterns to validate detection, autofill, and save-on-submit behavior.
+
 ## Security Notes
 
 - User login passwords are hashed with `password_hash()` (bcrypt).

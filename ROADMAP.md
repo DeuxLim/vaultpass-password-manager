@@ -310,20 +310,21 @@ Acceptance:
 ### Sprint 11
 Theme: Extension MVP scaffold
 Tasks:
-- Setup extension repo/folder (`extension/`).
-- MV3 manifest + popup shell.
-- Auth/session handshake with backend.
+- ✅ Setup extension repo/folder (`extension/`).
+- ✅ MV3 manifest + popup shell.
+- ✅ Auth/session handshake with backend.
 Acceptance:
-- Extension popup can list vault entries for logged-in user.
+- ✅ Extension popup can list vault entries for logged-in user.
 
 ### Sprint 12
 Theme: Extension fill/save loop
 Tasks:
-- Content script form detection and autofill.
-- Save prompt after login submission.
-- Domain matching v1.
+- ✅ Content script form detection and autofill.
+- ✅ Save prompt after login submission.
+- ✅ Domain matching v1.
+- ✅ Defined 20-case local acceptance matrix and fixture page.
 Acceptance:
-- Save + autofill works on defined test matrix.
+- ⬜ Save + autofill works on defined test matrix.
 
 ---
 
