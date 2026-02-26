@@ -37,6 +37,25 @@
       <p id="emptyState" class="muted" hidden>No entries match your search.</p>
     </section>
 
+    <section id="generatorPanel" class="card">
+      <h2 class="panel-title">Password Generator</h2>
+      <div class="row">
+        <label for="genLength">Length</label>
+        <input id="genLength" type="number" min="8" max="64" value="16">
+      </div>
+      <div class="checks">
+        <label><input id="genUpper" type="checkbox" checked>Upper</label>
+        <label><input id="genLower" type="checkbox" checked>Lower</label>
+        <label><input id="genNumbers" type="checkbox" checked>Numbers</label>
+        <label><input id="genSymbols" type="checkbox">Symbols</label>
+      </div>
+      <div class="row">
+        <button id="runGenerateBtn" class="btn" type="button">Generate</button>
+        <button id="copyGeneratedBtn" class="btn ghost" type="button">Copy</button>
+      </div>
+      <input id="generatedPassword" type="text" readonly placeholder="Generated password appears here">
+    </section>
+
     <p id="errorText" class="error" role="alert" aria-live="polite"></p>
   </main>
   <script type="module" src="popup.js"></script>

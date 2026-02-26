@@ -12,6 +12,14 @@ const searchInput = document.getElementById('searchInput');
 const vaultList = document.getElementById('vaultList');
 const emptyState = document.getElementById('emptyState');
 const errorText = document.getElementById('errorText');
+const genLength = document.getElementById('genLength');
+const genUpper = document.getElementById('genUpper');
+const genLower = document.getElementById('genLower');
+const genNumbers = document.getElementById('genNumbers');
+const genSymbols = document.getElementById('genSymbols');
+const runGenerateBtn = document.getElementById('runGenerateBtn');
+const copyGeneratedBtn = document.getElementById('copyGeneratedBtn');
+const generatedPassword = document.getElementById('generatedPassword');
 
 let items = [];
 
@@ -57,6 +65,29 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#039;');
+}
+
+function generatePassword() {
+  const length = Math.max(8, Math.min(64, Number(genLength?.value || 16)));
+  genLength.value = String(length);
+
+  let chars = '';
+  if (genUpper?.checked) chars += 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  if (genLower?.checked) chars += 'abcdefghijklmnopqrstuvwxyz';
+  if (genNumbers?.checked) chars += '0123456789';
+  if (genSymbols?.checked) chars += '!@#$%^&*()-_=+[]{}:;,.?';
+
+  if (!chars) {
+    throw new Error('Select at least one character set');
+  }
+
+  const values = new Uint32Array(length);
+  crypto.getRandomValues(values);
+  let output = '';
+  for (let i = 0; i < length; i += 1) {
+    output += chars[values[i] % chars.length];
+  }
+  return output;
 }
 
 async function checkSessionAndLoad() {
@@ -148,8 +179,36 @@ refreshBtn.addEventListener('click', async () => {
   await checkSessionAndLoad();
 });
 
+runGenerateBtn.addEventListener('click', () => {
+  try {
+    const value = generatePassword();
+    generatedPassword.value = value;
+    setError('');
+  } catch (error) {
+    setError(error.message || 'Unable to generate password.');
+  }
+});
+
+copyGeneratedBtn.addEventListener('click', async () => {
+  try {
+    const value = String(generatedPassword.value || '').trim();
+    if (!value) {
+      throw new Error('Generate a password first.');
+    }
+    await navigator.clipboard.writeText(value);
+    setError('');
+  } catch (error) {
+    setError(error.message || 'Unable to copy password.');
+  }
+});
+
 (async function init() {
   const baseUrl = await getBaseUrl();
   baseUrlInput.value = baseUrl;
+  try {
+    generatedPassword.value = generatePassword();
+  } catch (_error) {
+    generatedPassword.value = '';
+  }
   await checkSessionAndLoad();
 })();

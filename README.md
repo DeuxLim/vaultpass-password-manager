@@ -179,6 +179,7 @@ php -S localhost:8000 -t public
 In extension popup, open `Settings` and confirm `Backend base URL` matches your running app URL.
 Then sign in via `Open Login`, return to popup, and click `Refresh`.
 On supported login forms, the extension can autofill and will prompt to save credentials after submit.
+The popup also includes a local password generator with length and character-set controls.
 
 ### Extension Autofill Validation (Sprint 12)
 
