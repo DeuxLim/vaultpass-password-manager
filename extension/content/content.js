@@ -15,20 +15,63 @@ function isUsernameInput(input) {
   if (!(input instanceof HTMLInputElement)) return false;
   const type = (input.type || 'text').toLowerCase();
   if (!['text', 'email', 'tel'].includes(type)) return false;
-  const hint = `${input.name || ''} ${input.id || ''} ${input.autocomplete || ''} ${input.placeholder || ''}`.toLowerCase();
+  const hint = inputHint(input);
+  if (/(search|query|filter)/.test(hint)) return false;
   return /(user|email|login|account|identifier|phone)/.test(hint) || type === 'email';
 }
 
+function inputHint(input) {
+  const labels = Array.from(input.labels || [])
+    .map((label) => label.textContent || '')
+    .join(' ');
+  return `${input.name || ''} ${input.id || ''} ${input.autocomplete || ''} ${input.placeholder || ''} ${labels}`.toLowerCase();
+}
+
+function detectPasswordInput(form) {
+  const candidates = Array.from(form.querySelectorAll('input[type="password"]')).filter(isVisibleField);
+  if (candidates.length === 0) return null;
+  if (candidates.length === 1) return candidates[0];
+
+  const preferred = candidates.find((input) => {
+    const autocomplete = String(input.autocomplete || '').toLowerCase();
+    if (autocomplete === 'new-password') return false;
+    const hint = inputHint(input);
+    return /(pass|login|signin|current)/.test(hint);
+  });
+
+  return preferred || candidates[0];
+}
+
+function usernameScore(input) {
+  if (!(input instanceof HTMLInputElement)) return -1;
+  if (!isVisibleField(input)) return -1;
+  const type = (input.type || '').toLowerCase();
+  if (!['text', 'email', 'tel'].includes(type)) return -1;
+
+  const hint = inputHint(input);
+  if (/(search|query|filter)/.test(hint)) return -1;
+
+  let score = 0;
+  if (type === 'email') score += 6;
+  if (String(input.autocomplete || '').toLowerCase() === 'username' || /\busername\b/.test(hint)) score += 6;
+  if (/(email|login|user|account|identifier)/.test(hint)) score += 4;
+  if (/(phone|tel)/.test(hint)) score += 2;
+  if (input.autocomplete === 'off') score -= 1;
+  return score;
+}
+
 function detectLoginFormFields(form) {
-  const password = Array.from(form.querySelectorAll('input[type="password"]')).find(isVisibleField);
+  const password = detectPasswordInput(form);
   if (!password) return null;
 
   const allInputs = Array.from(form.querySelectorAll('input'));
   const usernameCandidates = allInputs.filter((input) => input !== password && isVisibleField(input));
-  const username =
-    usernameCandidates.find(isUsernameInput) ||
-    usernameCandidates.find((input) => ['text', 'email', 'tel'].includes((input.type || '').toLowerCase())) ||
-    null;
+  const scored = usernameCandidates
+    .map((input) => ({ input, score: usernameScore(input) }))
+    .filter((entry) => entry.score >= 0)
+    .sort((a, b) => b.score - a.score);
+
+  const username = scored[0]?.input || usernameCandidates.find(isUsernameInput) || null;
 
   return { username, password };
 }
