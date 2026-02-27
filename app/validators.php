@@ -125,3 +125,9 @@ function validate_shared_vault_name(string $name): ?string
 
     return null;
 }
+
+function normalize_shared_vault_role(mixed $value): string
+{
+    $role = strtolower(trim((string)$value));
+    return in_array($role, ['owner', 'editor', 'viewer'], true) ? $role : 'viewer';
+}

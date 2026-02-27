@@ -77,6 +77,7 @@ for path in \
   /api/auth/key-material.php \
   /api/auth/security-events.php \
   /api/shared-vault/list.php \
+  /api/shared-vault/members.php?vault_id=1 \
   /api/vault/list.php \
   /api/vault/list-versions.php?item_id=1
 do
@@ -92,6 +93,7 @@ for path in \
   /api/auth/2fa-disable.php \
   /api/auth/key-material-save.php \
   /api/shared-vault/create.php \
+  /api/shared-vault/invite.php \
   /api/vault/create.php \
   /api/vault/update.php \
   /api/vault/delete.php \

@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **65%** (Phases 1-3 complete; Phase 4 shared-vault foundation + dashboard UI started; Phase 7 validation pending)
+Project Progress: **67%** (Phases 1-3 complete; Phase 4 shared-vault APIs + dashboard UI started; Phase 7 validation pending)
 
 Last updated: 2026-02-27
 Owner: VaultPass core team
@@ -122,8 +122,9 @@ Exit criteria:
 Objective: Add web power-user capabilities before extension buildout.
 
 Scope:
-- ✅ Shared vaults foundation (schema + create/list APIs).
-- Shared vault invitations and granular permissions.
+- ✅ Shared vault foundation (schema + create/list APIs + dashboard UI).
+- ✅ Shared vault invitations + member role APIs (owner/editor/viewer baseline).
+- Shared vault granular permission matrix and invite acceptance lifecycle.
 - Emergency access workflow.
 - Password health dashboard (weak/reused/old).
 - Breach monitoring integration (optional external API).
