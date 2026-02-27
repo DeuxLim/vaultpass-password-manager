@@ -22,6 +22,7 @@ const copyGeneratedBtn = document.getElementById('copyGeneratedBtn');
 const generatedPassword = document.getElementById('generatedPassword');
 
 let items = [];
+const pendingActions = new Set();
 
 function setError(message = '') {
   errorText.textContent = String(message || '').trim();
@@ -144,11 +145,19 @@ vaultList.addEventListener('click', async (event) => {
   if (!button) return;
 
   const id = Number(button.dataset.id || 0);
+  const action = String(button.dataset.action || '').trim();
+  if (!action) return;
+  const actionKey = `${action}:${id}`;
+  if (pendingActions.has(actionKey)) return;
+
   const item = items.find((row) => row.id === id);
   if (!item) return;
 
+  pendingActions.add(actionKey);
+  button.disabled = true;
+
   try {
-    if (button.dataset.action === 'fill') {
+    if (action === 'fill') {
       if (normalizeItemType(item.item_type) === 'secure_note') {
         throw new Error('Secure notes cannot be autofilled.');
       }
@@ -164,18 +173,18 @@ vaultList.addEventListener('click', async (event) => {
       if (!response?.ok) {
         throw new Error(response?.error || 'Unable to fill in page');
       }
-    } else if (button.dataset.action === 'copy-note') {
+    } else if (action === 'copy-note') {
       const note = String(item.notes || '').trim();
       if (!note) {
         throw new Error('Secure note is empty.');
       }
       await navigator.clipboard.writeText(note);
-    } else if (button.dataset.action === 'copy-user') {
+    } else if (action === 'copy-user') {
       if (normalizeItemType(item.item_type) === 'secure_note') {
         throw new Error('Secure notes do not contain usernames.');
       }
       await navigator.clipboard.writeText(item.username);
-    } else if (button.dataset.action === 'copy-pass') {
+    } else if (action === 'copy-pass') {
       if (normalizeItemType(item.item_type) === 'secure_note') {
         throw new Error('Secure notes do not contain passwords.');
       }
@@ -184,6 +193,9 @@ vaultList.addEventListener('click', async (event) => {
     setError('');
   } catch (error) {
     setError(error?.message || 'Action failed.');
+  } finally {
+    pendingActions.delete(actionKey);
+    button.disabled = false;
   }
 });
 
