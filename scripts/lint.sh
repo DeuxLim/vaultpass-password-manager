@@ -14,6 +14,6 @@ echo "[lint] JS syntax checks"
 while IFS= read -r file; do
   node --check "$file" >/dev/null
   echo "  ok $file"
-done < <(rg --files public -g '*.js')
+done < <(rg --files public extension -g '*.js')
 
 echo "[lint] complete"
