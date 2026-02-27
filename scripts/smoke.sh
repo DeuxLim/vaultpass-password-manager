@@ -35,6 +35,18 @@ check_status() {
 check_status "$BASE_URL/api/auth/csrf.php" "200"
 check_status "$BASE_URL/api/auth/session.php" "200"
 check_status "$BASE_URL/api/vault/list.php" "401"
-check_status "$BASE_URL/api/auth/login.php" "422" "POST" "" '{"email":"bad","password":""}'
+
+csrf_token="$(curl -s -b "$tmp_cookie" -c "$tmp_cookie" "$BASE_URL/api/auth/csrf.php" | php -r '$d = json_decode(stream_get_contents(STDIN), true); echo is_array($d) ? ($d["csrf_token"] ?? "") : "";')"
+if [[ -z "$csrf_token" ]]; then
+  echo "[smoke] FAIL unable to obtain CSRF token"
+  exit 1
+fi
+
+code="$(curl -s -o /dev/null -w '%{http_code}' -X POST -b "$tmp_cookie" -c "$tmp_cookie" -H 'Content-Type: application/json' -H "X-CSRF-Token: $csrf_token" --data '{"email":"bad","password":""}' "$BASE_URL/api/auth/login.php")"
+if [[ "$code" != "422" ]]; then
+  echo "[smoke] FAIL POST $BASE_URL/api/auth/login.php expected=422 actual=$code"
+  exit 1
+fi
+echo "[smoke] ok   POST $BASE_URL/api/auth/login.php -> $code"
 
 echo "[smoke] completed"
