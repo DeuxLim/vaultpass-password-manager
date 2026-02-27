@@ -19,7 +19,12 @@ $ipWindow = rate_limit_int_env('LOGIN_RATE_LIMIT_WINDOW', 60);
 $ipMax = rate_limit_int_env('LOGIN_RATE_LIMIT_MAX', 20);
 $emailWindow = rate_limit_int_env('LOGIN_EMAIL_RATE_LIMIT_WINDOW', 300);
 $emailMax = rate_limit_int_env('LOGIN_EMAIL_RATE_LIMIT_MAX', 8);
+$lockoutWindow = rate_limit_int_env('ACCOUNT_LOCKOUT_WINDOW', 900);
+$lockoutMax = rate_limit_int_env('ACCOUNT_LOCKOUT_MAX', 8);
+$lockoutDuration = rate_limit_int_env('ACCOUNT_LOCKOUT_DURATION', 900);
+$lockoutKey = account_lockout_key_for_email($email);
 
+enforce_account_lockout($lockoutKey, $lockoutMax, $lockoutWindow, $lockoutDuration);
 enforce_rate_limit('auth:login:ip:' . request_ip(), $ipMax, $ipWindow);
 enforce_rate_limit('auth:login:email:' . $email, $emailMax, $emailWindow);
 
@@ -40,9 +45,15 @@ $stmt->execute(['email' => $email]);
 $user = $stmt->fetch();
 
 if (!$user || !password_verify($password, (string)$user['password_hash'])) {
-    audit_log('auth.login.failed', null, ['email_sha256' => hash('sha256', $email)]);
+    $lockoutState = record_account_lockout_failure($lockoutKey, $lockoutMax, $lockoutWindow, $lockoutDuration);
+    audit_log('auth.login.failed', null, [
+        'email_sha256' => hash('sha256', $email),
+        'account_locked' => (bool)($lockoutState['locked'] ?? false),
+    ]);
     json_response(['ok' => false, 'error' => 'Invalid credentials'], 401);
 }
+
+clear_account_lockout($lockoutKey);
 
 if (!empty($user['two_factor_user_id'])) {
     session_regenerate_id(true);
