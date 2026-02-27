@@ -9,6 +9,8 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 const SECOND_LEVEL_TLDS = new Set(['co', 'com', 'org', 'net', 'gov', 'ac', 'edu']);
+const recentSaveRequests = new Map();
+const SAVE_DEDUPE_WINDOW_MS = 3000;
 
 function normalizeHostname(value) {
   const input = String(value || '').trim().toLowerCase();
@@ -109,6 +111,25 @@ function sanitizeCredential(credential) {
   };
 }
 
+function isDuplicateSaveRequest(host, username, password) {
+  const key = `${host}\u0000${username.toLowerCase()}\u0000${password}`;
+  const now = Date.now();
+  const previous = recentSaveRequests.get(key) || 0;
+
+  for (const [existingKey, timestamp] of recentSaveRequests.entries()) {
+    if (now - timestamp > SAVE_DEDUPE_WINDOW_MS) {
+      recentSaveRequests.delete(existingKey);
+    }
+  }
+
+  if (previous && now - previous < SAVE_DEDUPE_WINDOW_MS) {
+    return true;
+  }
+
+  recentSaveRequests.set(key, now);
+  return false;
+}
+
 async function saveSubmittedCredential(payload) {
   const url = String(payload?.url || '').trim();
   const host = normalizeHostname(url);
@@ -116,6 +137,9 @@ async function saveSubmittedCredential(payload) {
   const password = String(payload?.password || '');
   if (!host || !username || !password) {
     return { ok: false, error: 'Missing required login fields' };
+  }
+  if (isDuplicateSaveRequest(host, username, password)) {
+    return { ok: true, mode: 'deduped' };
   }
 
   const items = await fetchVaultItems();

@@ -78,3 +78,4 @@ Notes:
 Implementation note:
 - For pages with multiple login forms, extension fill prioritizes the currently focused/last-interacted form.
 - Save prompt deduplication: repeated/near-simultaneous submit events for the same form payload are collapsed into a single confirm/save attempt.
+- Background save API deduplication: repeated identical save messages inside a short window are ignored server-call side.

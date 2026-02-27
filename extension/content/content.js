@@ -315,6 +315,8 @@ function formSubmitHandler(form) {
           setStatus('Saved as new VaultPass item');
         } else if (response.mode === 'updated') {
           setStatus('Updated existing VaultPass item');
+        } else if (response.mode === 'deduped') {
+          setStatus('Save already processed');
         }
       } finally {
         releaseSubmitLock(form);
