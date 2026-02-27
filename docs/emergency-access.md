@@ -11,6 +11,7 @@ Emergency Access allows a user (owner) to designate a trusted contact (grantee) 
 - Owner can create/update an emergency grant to a registered user by email.
 - Owner can revoke a grant.
 - Grantee can request emergency access against an enabled grant.
+- Grantee can cancel their own pending emergency request.
 - Owner can approve or deny a pending request.
 - Approval records an expiration timestamp based on the configured wait period.
 
@@ -20,6 +21,7 @@ Emergency Access allows a user (owner) to designate a trusted contact (grantee) 
 - `POST /api/emergency-access/grant.php`
 - `POST /api/emergency-access/revoke.php`
 - `POST /api/emergency-access/request.php`
+- `POST /api/emergency-access/cancel-request.php`
 - `POST /api/emergency-access/decide.php`
 
 All mutating endpoints require:

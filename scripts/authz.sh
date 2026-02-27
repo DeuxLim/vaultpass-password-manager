@@ -97,6 +97,7 @@ for path in \
   /api/emergency-access/grant.php \
   /api/emergency-access/revoke.php \
   /api/emergency-access/request.php \
+  /api/emergency-access/cancel-request.php \
   /api/emergency-access/decide.php \
   /api/shared-vault/create.php \
   /api/shared-vault/update.php \

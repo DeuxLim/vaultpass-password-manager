@@ -1668,6 +1668,7 @@ function emergencyStatusBadge(status) {
   const value = String(status || '').toLowerCase();
   if (value === 'approved') return '<span class="status-pill is-approved">approved</span>';
   if (value === 'denied') return '<span class="status-pill is-denied">denied</span>';
+  if (value === 'cancelled') return '<span class="status-pill is-disabled">cancelled</span>';
   return '<span class="status-pill is-pending">pending</span>';
 }
 
@@ -1737,6 +1738,7 @@ function renderEmergencyAccess() {
         <div class="shared-vault-actions">
           ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-primary" data-action="emergency-approve-request" data-request-id="${request.id}">Approve</button>` : ''}
           ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-deny-request" data-request-id="${request.id}">Deny</button>` : ''}
+          ${request.is_outgoing_for_requester && request.status === 'pending' ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-cancel-request" data-request-id="${request.id}">Cancel</button>` : ''}
         </div>
       </article>
     `).join('');
@@ -1796,6 +1798,15 @@ async function decideEmergencyRequest(requestId, action) {
   });
   await loadEmergencyAccess();
   showToast(action === 'approve' ? 'Emergency request approved.' : 'Emergency request denied.');
+}
+
+async function cancelEmergencyRequest(requestId) {
+  await csrfReady;
+  await requestApi('../api/emergency-access/cancel-request.php', 'POST', {
+    request_id: requestId,
+  });
+  await loadEmergencyAccess();
+  showToast('Emergency request cancelled.');
 }
 
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
@@ -2359,6 +2370,12 @@ emergencyRequestsList?.addEventListener('click', async (e) => {
       const confirmed = window.confirm('Deny this emergency access request? The requester will need to submit a new request.');
       if (!confirmed) return;
       await decideEmergencyRequest(requestId, 'deny');
+      return;
+    }
+    if (button.dataset.action === 'emergency-cancel-request') {
+      const confirmed = window.confirm('Cancel this emergency access request? You can submit a new request later.');
+      if (!confirmed) return;
+      await cancelEmergencyRequest(requestId);
     }
   } catch (error) {
     if (emergencyError) emergencyError.textContent = error.message || 'Unable to update emergency request.';
