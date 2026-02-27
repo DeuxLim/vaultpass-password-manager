@@ -18,6 +18,7 @@
       </a>
       <nav class="sidebar-nav" aria-label="Dashboard sections">
         <a href="#mainContent" class="nav-item is-active">Vault</a>
+        <a href="#sharedVaultsPanel" class="nav-item">Shared Vaults</a>
         <button type="button" id="backupBtn" class="nav-item">Import / Export</button>
         <button type="button" id="securityBtn" class="nav-item">Security</button>
       </nav>
@@ -56,6 +57,23 @@
         <p class="health-label">Old (&gt; 180 days)</p>
         <p id="healthOld" class="health-value is-old">0</p>
       </article>
+      </section>
+
+      <section id="sharedVaultsPanel" class="shared-vaults-panel" aria-label="Shared vaults">
+        <div class="shared-vaults-header">
+          <div>
+            <p class="eyebrow">Collaboration</p>
+            <h2>Shared Vaults</h2>
+          </div>
+          <form id="sharedVaultForm" class="shared-vaults-form">
+            <label for="sharedVaultNameInput" class="sr-only">Shared vault name</label>
+            <input id="sharedVaultNameInput" type="text" maxlength="120" placeholder="Family Vault">
+            <button type="submit" id="createSharedVaultBtn" class="btn btn-primary">Create Shared Vault</button>
+          </form>
+        </div>
+        <p id="sharedVaultError" class="form-error" role="alert" aria-live="assertive"></p>
+        <p id="sharedVaultEmpty" class="empty-state">No shared vaults yet.</p>
+        <div id="sharedVaultList" class="shared-vaults-list"></div>
       </section>
 
       <section class="filters-panel" aria-label="Vault filters">

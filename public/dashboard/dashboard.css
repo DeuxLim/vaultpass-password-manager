@@ -154,6 +154,7 @@ body {
 
 .headline-panel,
 .health-panel,
+.shared-vaults-panel,
 .filters-panel,
 .table-card {
   border: 1px solid var(--line);
@@ -251,6 +252,72 @@ h1 {
 .health-value.is-weak { color: var(--danger); }
 .health-value.is-warning { color: var(--warning); }
 .health-value.is-old { color: var(--primary); }
+
+.shared-vaults-panel {
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+
+.shared-vaults-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shared-vaults-header h2 {
+  margin: 8px 0 0;
+  font-size: 22px;
+  letter-spacing: -0.02em;
+}
+
+.shared-vaults-form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shared-vaults-form input {
+  min-height: 44px;
+  min-width: min(320px, 70vw);
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+}
+
+.shared-vaults-list {
+  display: grid;
+  gap: 8px;
+}
+
+.shared-vault-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.shared-vault-name {
+  margin: 0;
+  font-weight: 600;
+}
+
+.shared-vault-meta {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
 
 .table-card {
   overflow: hidden;
@@ -619,6 +686,7 @@ button:focus-visible,
   .dashboard-shell { padding: 10px; }
   .headline-panel,
   .health-panel,
+  .shared-vaults-panel,
   .filters-panel,
   .table-card { border-radius: 14px; }
   .headline-panel { padding: 14px; }
@@ -626,6 +694,7 @@ button:focus-visible,
   #searchInput,
   #addItemBtn { width: 100%; }
   .health-panel,
+  .shared-vaults-form,
   .filters-panel,
   .csv-mapping,
   .csv-actions,
@@ -633,6 +702,10 @@ button:focus-visible,
   .twofa-actions {
     grid-template-columns: 1fr;
     display: grid;
+  }
+  .shared-vaults-form input {
+    min-width: 0;
+    width: 100%;
   }
   .vault-modal {
     width: 100vw;

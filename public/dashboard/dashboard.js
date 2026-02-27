@@ -80,6 +80,11 @@ const healthTotal = document.getElementById('healthTotal');
 const healthWeak = document.getElementById('healthWeak');
 const healthReused = document.getElementById('healthReused');
 const healthOld = document.getElementById('healthOld');
+const sharedVaultForm = document.getElementById('sharedVaultForm');
+const sharedVaultNameInput = document.getElementById('sharedVaultNameInput');
+const sharedVaultError = document.getElementById('sharedVaultError');
+const sharedVaultList = document.getElementById('sharedVaultList');
+const sharedVaultEmpty = document.getElementById('sharedVaultEmpty');
 
 let items = [];
 let historyItemId = 0;
@@ -94,6 +99,8 @@ let sessionPolicy = null;
 let featureFlags = { zeroKnowledgeClientEncryption: false };
 let zkPassphrase = '';
 let zkKeyMaterialStatus = { loaded: false, available: false, has: false };
+let sharedVaults = [];
+let sharedVaultsAvailable = false;
 
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
@@ -1221,6 +1228,60 @@ async function loadItems() {
   renderTable();
 }
 
+function renderSharedVaults() {
+  if (!sharedVaultList || !sharedVaultEmpty) return;
+
+  if (!sharedVaultsAvailable) {
+    sharedVaultList.innerHTML = '';
+    sharedVaultEmpty.textContent = 'Shared vaults are unavailable until migration 008 is applied.';
+    sharedVaultEmpty.style.display = 'block';
+    return;
+  }
+
+  if (sharedVaults.length === 0) {
+    sharedVaultList.innerHTML = '';
+    sharedVaultEmpty.textContent = 'No shared vaults yet.';
+    sharedVaultEmpty.style.display = 'block';
+    return;
+  }
+
+  sharedVaultEmpty.style.display = 'none';
+  sharedVaultList.innerHTML = sharedVaults.map((vault) => `
+    <article class="shared-vault-row">
+      <div>
+        <p class="shared-vault-name">${escapeHtml(vault.name)}</p>
+        <p class="shared-vault-meta">Role: ${escapeHtml(vault.role)} · Members: ${Number(vault.member_count || 0)}</p>
+      </div>
+      <p class="shared-vault-meta">Updated ${new Date(vault.updated_at).toLocaleDateString()}</p>
+    </article>
+  `).join('');
+}
+
+async function loadSharedVaults() {
+  if (sharedVaultError) sharedVaultError.textContent = '';
+  if (!sharedVaultList || !sharedVaultEmpty) return;
+
+  const data = await requestApi('../api/shared-vault/list.php', 'GET');
+  sharedVaultsAvailable = Boolean(data?.available);
+  sharedVaults = Array.isArray(data?.shared_vaults) ? data.shared_vaults : [];
+  renderSharedVaults();
+}
+
+async function createSharedVault() {
+  if (sharedVaultError) sharedVaultError.textContent = '';
+  const name = String(sharedVaultNameInput?.value || '').trim();
+  if (!name) {
+    if (sharedVaultError) sharedVaultError.textContent = 'Shared vault name is required.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/create.php', 'POST', { name });
+  if (sharedVaultNameInput) sharedVaultNameInput.value = '';
+  await loadSharedVaults();
+  showToast('Shared vault created.');
+}
+
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
 backupBtn?.addEventListener('click', (e) => {
   resetBackupUi();
@@ -1318,6 +1379,14 @@ runImportCsvBtn?.addEventListener('click', async () => {
     await runCsvImport();
   } catch (error) {
     backupError.textContent = error.message || 'Unable to import CSV.';
+  }
+});
+sharedVaultForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await createSharedVault();
+  } catch (error) {
+    if (sharedVaultError) sharedVaultError.textContent = error.message || 'Unable to create shared vault.';
   }
 });
 refreshEventsBtn?.addEventListener('click', async () => {
@@ -1636,6 +1705,7 @@ sessionsList?.addEventListener('click', async (e) => {
     const ok = await loadSession();
     if (!ok) return;
     await loadItems();
+    await loadSharedVaults();
   } catch (_error) {
     showToast('Unable to load dashboard data.', 'error');
   }
