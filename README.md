@@ -245,6 +245,20 @@ http://localhost:8000/pages/extension-fixtures.html
 
 This page provides 20 form patterns to validate detection, autofill, and save-on-submit behavior.
 
+## Emergency Access (Phase 4 Foundation)
+
+Emergency access foundations are implemented and available from the dashboard section:
+
+- create/revoke grants
+- request access as grantee
+- approve/deny requests as owner
+
+Technical details and current limitations:
+
+```text
+docs/emergency-access.md
+```
+
 ## Security Notes
 
 - User login passwords are hashed with `password_hash()` (bcrypt).
