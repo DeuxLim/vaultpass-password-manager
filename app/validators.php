@@ -111,3 +111,17 @@ function validate_vault_item_payload(array $item): ?string
 
     return null;
 }
+
+function normalize_shared_vault_name_input(mixed $value): string
+{
+    return mb_substr(trim((string)$value), 0, 120);
+}
+
+function validate_shared_vault_name(string $name): ?string
+{
+    if ($name === '') {
+        return 'Shared vault name is required';
+    }
+
+    return null;
+}

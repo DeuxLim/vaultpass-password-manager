@@ -52,3 +52,26 @@ function db_column_exists(string $table, string $column): bool
     $cache[$key] = $stmt->fetchColumn() !== false;
     return $cache[$key];
 }
+
+function db_table_exists(string $table): bool
+{
+    static $cache = [];
+
+    if (array_key_exists($table, $cache)) {
+        return $cache[$table];
+    }
+
+    $stmt = db()->prepare(
+        'SELECT 1
+         FROM information_schema.TABLES
+         WHERE TABLE_SCHEMA = DATABASE()
+           AND TABLE_NAME = :table_name
+         LIMIT 1'
+    );
+    $stmt->execute([
+        'table_name' => $table,
+    ]);
+
+    $cache[$table] = $stmt->fetchColumn() !== false;
+    return $cache[$table];
+}
