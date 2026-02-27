@@ -8,9 +8,9 @@ require_method('POST');
 require_csrf();
 
 $body = request_body();
-$email = strtolower(trim((string)($body['email'] ?? '')));
+$email = normalize_email_input($body['email'] ?? '');
 $password = (string)($body['password'] ?? '');
-$name = trim((string)($body['name'] ?? ''));
+$name = normalize_name_input($body['name'] ?? '');
 
 $ipWindow = rate_limit_int_env('REGISTER_RATE_LIMIT_WINDOW', 300);
 $ipMax = rate_limit_int_env('REGISTER_RATE_LIMIT_MAX', 10);
@@ -20,11 +20,11 @@ $emailMax = rate_limit_int_env('REGISTER_EMAIL_RATE_LIMIT_MAX', 3);
 enforce_rate_limit('auth:register:ip:' . request_ip(), $ipMax, $ipWindow);
 enforce_rate_limit('auth:register:email:' . $email, $emailMax, $emailWindow);
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+if (!is_valid_email_format($email)) {
     json_response(['ok' => false, 'error' => 'Invalid email'], 422);
 }
 
-if (strlen($password) < 8) {
+if (!is_valid_password_length($password, 8)) {
     json_response(['ok' => false, 'error' => 'Password must be at least 8 characters'], 422);
 }
 

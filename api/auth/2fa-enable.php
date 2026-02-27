@@ -32,6 +32,10 @@ if ((time() - $setupStartedAt) > 1800) {
 $body = request_body();
 $code = (string)($body['code'] ?? '');
 
+if (!is_valid_totp_code_format($code)) {
+    json_response(['ok' => false, 'error' => 'Invalid verification code format'], 422);
+}
+
 if (!verify_totp_code($secret, $code)) {
     json_response(['ok' => false, 'error' => 'Invalid verification code'], 422);
 }

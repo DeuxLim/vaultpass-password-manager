@@ -8,10 +8,10 @@ require_method('POST');
 require_csrf();
 
 $body = request_body();
-$email = strtolower(trim((string)($body['email'] ?? '')));
+$email = normalize_email_input($body['email'] ?? '');
 $password = (string)($body['password'] ?? '');
 
-if (!filter_var($email, FILTER_VALIDATE_EMAIL) || $password === '') {
+if (!is_valid_email_format($email) || $password === '') {
     json_response(['ok' => false, 'error' => 'Invalid credentials'], 422);
 }
 
