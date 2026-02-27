@@ -149,10 +149,28 @@ async function fillInActiveTab(credential) {
     return { ok: false, error: 'No active tab available' };
   }
 
-  await chrome.tabs.sendMessage(activeTab.id, {
-    type: 'EXT_FILL_CREDENTIAL',
-    credential: normalized,
-  });
+  try {
+    await chrome.tabs.sendMessage(activeTab.id, {
+      type: 'EXT_FILL_CREDENTIAL',
+      credential: normalized,
+    });
+  } catch (error) {
+    const message = String(error?.message || '');
+    const noReceiver = message.includes('Receiving end does not exist');
+    if (!noReceiver) {
+      throw error;
+    }
+
+    await chrome.scripting.executeScript({
+      target: { tabId: activeTab.id, allFrames: true },
+      files: ['content/content.js'],
+    });
+
+    await chrome.tabs.sendMessage(activeTab.id, {
+      type: 'EXT_FILL_CREDENTIAL',
+      credential: normalized,
+    });
+  }
 
   return { ok: true };
 }

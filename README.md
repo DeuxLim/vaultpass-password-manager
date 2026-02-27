@@ -47,6 +47,7 @@ DB_NAME=vaultpass
 DB_USER=root
 DB_PASS=your_mysql_password
 APP_KEY=your_long_random_secret
+APP_ENV=development
 SESSION_COOKIE_SECURE=false
 SESSION_SAMESITE=Lax
 
@@ -71,6 +72,11 @@ BACKUP_KDF_ITERATIONS=210000
 ```
 
 `APP_KEY` must be a long random value.
+
+For production deployments:
+- set `APP_ENV=production`
+- set `SESSION_COOKIE_SECURE=true`
+- use HTTPS only for app traffic
 
 Generate one with:
 
@@ -155,6 +161,12 @@ Security checklist is tracked in:
 docs/security-checklist.md
 ```
 
+Production release checklist:
+
+```text
+docs/production-readiness-checklist.md
+```
+
 ## Chrome Extension MVP (Sprint 11)
 
 Extension source is in:
@@ -180,6 +192,8 @@ In extension popup, open `Settings` and confirm `Backend base URL` matches your 
 Then sign in via `Open Login`, return to popup, and click `Refresh`.
 On supported login forms, the extension can autofill and will prompt to save credentials after submit.
 The popup also includes a local password generator with length and character-set controls.
+If manual `Fill` is clicked before a page script is ready, the extension now auto-injects and retries fill.
+For production users, extension default backend is derived from the extension `homepage_url` origin (no manual setup required).
 
 ### Extension Autofill Validation (Sprint 12)
 

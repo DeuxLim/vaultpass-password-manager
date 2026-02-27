@@ -9,6 +9,7 @@ Purpose: validate Sprint 12 acceptance criteria for extension save + autofill.
 3. Extension popup connected to the same backend URL.
 4. Signed in through extension `Open Login` flow.
 5. At least one credential exists for `localhost`.
+6. Extension reloaded after updates (`chrome://extensions` -> `Reload`).
 
 ## Test Fixture Page
 
@@ -33,6 +34,7 @@ Use:
 | 11 | Dynamic form injected after load | Autofill prompt still appears and fills |
 | 12 | Subdomain simulation label (`app.localhost`) | Domain match still returns localhost creds |
 | 13 | Popup manual Fill action | Active tab receives fill and updates fields |
+| 13a | Popup Fill when receiver missing | Extension injects content script and retries successfully |
 | 14 | Submit populated form for existing credential | Save confirm prompt appears; confirming updates existing vault entry |
 | 15 | Submit populated form for new username | Save confirm prompt appears; confirming creates new entry or updates match |
 | 16 | Submit with empty username | No save call performed |

@@ -3,6 +3,7 @@
   "name": "VaultPass Extension",
   "description": "VaultPass browser extension MVP: quick vault access and copy.",
   "version": "0.1.0",
+  "homepage_url": "https://app.vaultpass.com",
   "action": {
     "default_title": "VaultPass",
     "default_popup": "popup/popup.html"
@@ -13,9 +14,11 @@
   },
   "permissions": [
     "storage",
-    "tabs"
+    "tabs",
+    "scripting"
   ],
   "host_permissions": [
+    "https://app.vaultpass.com/*",
     "http://localhost/*",
     "http://127.0.0.1/*"
   ],
@@ -28,7 +31,8 @@
       "js": [
         "content/content.js"
       ],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": true
     }
   ]
 }

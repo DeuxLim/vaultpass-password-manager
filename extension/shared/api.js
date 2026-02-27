@@ -1,5 +1,20 @@
-const DEFAULT_BASE_URL = 'http://localhost:8000';
+const DEFAULT_BASE_URL = resolveDefaultBaseUrl();
 let csrfToken = null;
+
+function resolveDefaultBaseUrl() {
+  try {
+    const manifest = chrome.runtime.getManifest();
+    const homepageUrl = String(manifest?.homepage_url || '').trim();
+    if (homepageUrl) {
+      const url = new URL(homepageUrl);
+      return `${url.origin}`;
+    }
+  } catch (_error) {
+    // Fall back to localhost for local development if manifest homepage is missing.
+  }
+
+  return 'http://localhost:8000';
+}
 
 export async function getBaseUrl() {
   const stored = await chrome.storage.sync.get(['vaultpass_base_url']);
