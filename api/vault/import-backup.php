@@ -46,14 +46,22 @@ if (count($items) > 5000) {
 $imported = 0;
 $errors = [];
 $pdo = db();
+$supportsItemType = db_column_exists('vault_items', 'item_type');
 
 try {
     $pdo->beginTransaction();
 
-    $insertStmt = $pdo->prepare(
-        'INSERT INTO vault_items (user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc)
-         VALUES (:user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc)'
-    );
+    if ($supportsItemType) {
+        $insertStmt = $pdo->prepare(
+            'INSERT INTO vault_items (user_id, site, item_type, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc)
+             VALUES (:user_id, :site, :item_type, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc)'
+        );
+    } else {
+        $insertStmt = $pdo->prepare(
+            'INSERT INTO vault_items (user_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc)
+             VALUES (:user_id, :site, :folder, :tags_json, :is_favorite, :username_enc, :password_enc, :notes_enc)'
+        );
+    }
 
     foreach ($items as $index => $item) {
         if (!is_array($item)) {
@@ -62,6 +70,8 @@ try {
         }
 
         $site = trim((string)($item['site'] ?? ''));
+        $itemType = strtolower(trim((string)($item['item_type'] ?? 'login')));
+        $itemType = $itemType === 'secure_note' ? 'secure_note' : 'login';
         $folder = trim((string)($item['folder'] ?? ''));
         $isFavorite = ((int)($item['is_favorite'] ?? 0)) === 1;
         $tagsInput = $item['tags'] ?? [];
@@ -93,12 +103,22 @@ try {
         }
         $tags = array_keys($normalizedTags);
 
-        if ($site === '' || $username === '' || $password === '') {
+        if ($site === '') {
+            $errors[] = ['row' => $index + 1, 'error' => 'Site is required'];
+            continue;
+        }
+
+        if ($itemType === 'login' && ($username === '' || $password === '')) {
             $errors[] = ['row' => $index + 1, 'error' => 'Site, username, and password are required'];
             continue;
         }
 
-        $insertStmt->execute([
+        if ($itemType === 'secure_note' && $notes === '') {
+            $errors[] = ['row' => $index + 1, 'error' => 'Secure note content is required'];
+            continue;
+        }
+
+        $params = [
             'user_id' => $userId,
             'site' => mb_substr($site, 0, 191),
             'folder' => mb_substr($folder, 0, 120),
@@ -107,7 +127,15 @@ try {
             'username_enc' => encrypt_value($username),
             'password_enc' => encrypt_value($password),
             'notes_enc' => encrypt_value($notes),
-        ]);
+        ];
+        if ($supportsItemType) {
+            $params['item_type'] = $itemType;
+        } elseif ($itemType === 'secure_note') {
+            $errors[] = ['row' => $index + 1, 'error' => 'Secure notes require migration 006 (item type support)'];
+            continue;
+        }
+
+        $insertStmt->execute($params);
         $imported++;
     }
 

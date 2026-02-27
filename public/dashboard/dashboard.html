@@ -35,7 +35,7 @@
         </div>
         <div class="header-actions">
           <input id="searchInput" type="search" placeholder="Search site, username, folder, tags, notes" aria-label="Search passwords">
-          <button id="addItemBtn" class="btn btn-primary">Add Password</button>
+          <button id="addItemBtn" class="btn btn-primary">Add Entry</button>
         </div>
       </section>
 
@@ -85,6 +85,7 @@
             <tr>
               <th scope="col">Fav</th>
               <th scope="col">Site</th>
+              <th scope="col">Type</th>
               <th scope="col">Folder</th>
               <th scope="col">Tags</th>
               <th scope="col">Username</th>
@@ -103,24 +104,34 @@
 
   <dialog id="vaultModal" class="vault-modal" aria-labelledby="modalTitle">
     <form id="vaultForm" method="dialog">
-      <h2 id="modalTitle">Add Password</h2>
+      <h2 id="modalTitle">Add Entry</h2>
       <input type="hidden" id="vaultId">
 
       <label for="siteInput">Site</label>
       <input type="text" id="siteInput" placeholder="example.com" required>
 
-      <label for="usernameInput">Username</label>
-      <input type="text" id="usernameInput" placeholder="name@company.com" required>
+      <label for="itemTypeInput">Entry Type</label>
+      <select id="itemTypeInput">
+        <option value="login">Login</option>
+        <option value="secure_note">Secure Note</option>
+      </select>
 
-      <label for="passwordInput">Password</label>
-      <input type="text" id="passwordInput" placeholder="Enter password" required>
-      <div class="password-health" aria-live="polite">
-        <div class="strength-line">
-          <span id="passwordStrengthLabel">Strength: —</span>
-          <button type="button" id="generatePasswordBtn" class="action-neutral">Generate</button>
-        </div>
-        <div class="strength-meter" aria-hidden="true">
-          <span id="passwordStrengthFill"></span>
+      <div id="usernameFieldGroup">
+        <label for="usernameInput">Username</label>
+        <input type="text" id="usernameInput" placeholder="name@company.com">
+      </div>
+
+      <div id="passwordFieldGroup">
+        <label for="passwordInput">Password</label>
+        <input type="text" id="passwordInput" placeholder="Enter password">
+        <div class="password-health" aria-live="polite">
+          <div class="strength-line">
+            <span id="passwordStrengthLabel">Strength: —</span>
+            <button type="button" id="generatePasswordBtn" class="action-neutral">Generate</button>
+          </div>
+          <div class="strength-meter" aria-hidden="true">
+            <span id="passwordStrengthFill"></span>
+          </div>
         </div>
       </div>
       <details id="generatorPanel" class="generator-panel">

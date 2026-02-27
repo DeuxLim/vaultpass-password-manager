@@ -122,6 +122,12 @@ If you already created the database before vault metadata (folders/tags/favorite
 mysql -u root -p < sql/migrations/005_add_vault_metadata.sql
 ```
 
+If you already created the database before vault item types (login/secure note) were added, run:
+
+```bash
+mysql -u root -p < sql/migrations/006_add_vault_item_type.sql
+```
+
 2. Run app:
 
 ```bash

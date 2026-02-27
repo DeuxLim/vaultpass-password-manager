@@ -78,7 +78,7 @@ Scope:
 - ✅ Password generator with policy options.
 - ✅ Strength meter for stored/generated passwords.
 - ✅ Vault item history/versioning and restore.
-- ⬜ Secure notes item type.
+- ✅ Secure notes item type.
 - ✅ Favorites and foldering/tags.
 - ✅ Search enhancements (site, username, tags, notes).
 - ✅ Import/export:

@@ -13,8 +13,11 @@ if ($itemId <= 0) {
 }
 
 $pdo = db();
+$supportsItemType = db_column_exists('vault_items', 'item_type');
+$supportsVersionItemType = db_column_exists('vault_item_versions', 'item_type');
 
-$itemStmt = $pdo->prepare('SELECT id, site FROM vault_items WHERE id = :id AND user_id = :user_id LIMIT 1');
+$itemColumns = $supportsItemType ? 'id, site, item_type' : 'id, site';
+$itemStmt = $pdo->prepare("SELECT {$itemColumns} FROM vault_items WHERE id = :id AND user_id = :user_id LIMIT 1");
 $itemStmt->execute([
     'id' => $itemId,
     'user_id' => $userId,
@@ -26,11 +29,15 @@ if (!$item) {
 }
 
 try {
+    $versionColumns = 'id, vault_item_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source, created_at';
+    if ($supportsVersionItemType) {
+        $versionColumns = 'id, vault_item_id, site, item_type, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source, created_at';
+    }
     $stmt = $pdo->prepare(
-        'SELECT id, vault_item_id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, source, created_at
+        "SELECT {$versionColumns}
          FROM vault_item_versions
          WHERE vault_item_id = :item_id AND user_id = :user_id
-         ORDER BY created_at DESC, id DESC'
+         ORDER BY created_at DESC, id DESC"
     );
     $stmt->execute([
         'item_id' => $itemId,
@@ -72,6 +79,7 @@ $versions = array_map(static function (array $row): array {
         'id' => (int)$row['id'],
         'vault_item_id' => (int)$row['vault_item_id'],
         'site' => (string)$row['site'],
+        'item_type' => (string)($row['item_type'] ?? 'login'),
         'folder' => (string)($row['folder'] ?? ''),
         'tags' => is_array($tags) ? array_values(array_filter($tags, static fn ($tag): bool => is_string($tag) && trim($tag) !== '')) : [],
         'is_favorite' => ((int)($row['is_favorite'] ?? 0)) === 1,
@@ -88,6 +96,7 @@ json_response([
     'item' => [
         'id' => (int)$item['id'],
         'site' => (string)$item['site'],
+        'item_type' => (string)($item['item_type'] ?? 'login'),
     ],
     'versions' => $versions,
     'history_available' => true,

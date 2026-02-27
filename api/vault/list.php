@@ -8,12 +8,17 @@ require_method('GET');
 $userId = require_auth();
 
 $pdo = db();
+$supportsItemType = db_column_exists('vault_items', 'item_type');
 try {
+    $columns = 'id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, created_at, updated_at';
+    if ($supportsItemType) {
+        $columns = 'id, site, item_type, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, created_at, updated_at';
+    }
     $stmt = $pdo->prepare(
-        'SELECT id, site, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc, created_at, updated_at
+        "SELECT {$columns}
          FROM vault_items
          WHERE user_id = :user_id
-         ORDER BY created_at DESC'
+         ORDER BY created_at DESC"
     );
     $stmt->execute(['user_id' => $userId]);
     $rows = $stmt->fetchAll();
@@ -38,6 +43,7 @@ $items = array_map(static function (array $row): array {
     return [
         'id' => (int)$row['id'],
         'site' => (string)$row['site'],
+        'item_type' => (string)($row['item_type'] ?? 'login'),
         'folder' => (string)($row['folder'] ?? ''),
         'tags' => is_array($tags) ? array_values(array_filter($tags, static fn ($tag): bool => is_string($tag) && trim($tag) !== '')) : [],
         'is_favorite' => ((int)($row['is_favorite'] ?? 0)) === 1,

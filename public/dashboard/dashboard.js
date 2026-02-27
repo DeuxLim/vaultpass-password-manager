@@ -57,6 +57,9 @@ const toastRegion = document.getElementById('toastRegion');
 
 const vaultId = document.getElementById('vaultId');
 const siteInput = document.getElementById('siteInput');
+const itemTypeInput = document.getElementById('itemTypeInput');
+const usernameFieldGroup = document.getElementById('usernameFieldGroup');
+const passwordFieldGroup = document.getElementById('passwordFieldGroup');
 const usernameInput = document.getElementById('usernameInput');
 const passwordInput = document.getElementById('passwordInput');
 const notesInput = document.getElementById('notesInput');
@@ -139,6 +142,42 @@ function showToast(message, type = 'success') {
   }, 2600);
 }
 
+function normalizeItemType(value) {
+  return String(value || '').trim() === 'secure_note' ? 'secure_note' : 'login';
+}
+
+function formatItemType(value) {
+  return normalizeItemType(value) === 'secure_note' ? 'Secure Note' : 'Login';
+}
+
+function applyItemTypeUi(value) {
+  const type = normalizeItemType(value);
+  const isSecureNote = type === 'secure_note';
+
+  if (siteInput) {
+    siteInput.placeholder = isSecureNote ? 'Secure note title' : 'example.com';
+  }
+  if (notesInput) {
+    notesInput.placeholder = isSecureNote ? 'Write your secure note' : 'Optional notes';
+    notesInput.required = isSecureNote;
+  }
+  if (usernameFieldGroup) {
+    usernameFieldGroup.hidden = isSecureNote;
+  }
+  if (passwordFieldGroup) {
+    passwordFieldGroup.hidden = isSecureNote;
+  }
+  if (generatorPanel) {
+    generatorPanel.hidden = isSecureNote;
+  }
+  if (usernameInput) {
+    usernameInput.required = !isSecureNote;
+  }
+  if (passwordInput) {
+    passwordInput.required = !isSecureNote;
+  }
+}
+
 function filteredItems() {
   const term = (searchInput?.value || '').toLowerCase().trim();
   const favoriteMode = favoriteFilter?.value || 'all';
@@ -175,6 +214,23 @@ function renderTags(tags) {
   return tags.map((tag) => `<span class="tag-pill">${escapeHtml(tag)}</span>`).join('');
 }
 
+function renderItemActions(item) {
+  const isSecureNote = normalizeItemType(item.item_type) === 'secure_note';
+  const siteLabel = escapeHtml(item.site);
+  const copyButtons = isSecureNote
+    ? ''
+    : `
+        <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${siteLabel}">Copy User</button>
+        <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${siteLabel}">Copy Pass</button>
+      `;
+  return `
+    ${copyButtons}
+    <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${siteLabel}">Edit</button>
+    <button type="button" data-action="history" data-id="${item.id}" class="action-neutral" aria-label="View history for ${siteLabel}">History</button>
+    <button type="button" data-action="delete" data-id="${item.id}" class="action-danger" aria-label="Delete ${siteLabel}">Delete</button>
+  `;
+}
+
 function parseTagsInput(rawValue) {
   const raw = String(rawValue || '');
   const dedup = new Map();
@@ -205,10 +261,11 @@ function populateFolderFilter() {
 
 function renderHealthSummary() {
   const total = items.length;
-  const weak = items.filter((item) => scorePassword(item.password) < 60).length;
+  const loginItems = items.filter((item) => normalizeItemType(item.item_type) !== 'secure_note');
+  const weak = loginItems.filter((item) => scorePassword(item.password) < 60).length;
 
   const passwordCounts = new Map();
-  items.forEach((item) => {
+  loginItems.forEach((item) => {
     const value = String(item.password || '');
     if (!value) return;
     passwordCounts.set(value, (passwordCounts.get(value) || 0) + 1);
@@ -616,13 +673,15 @@ async function loadHistory(itemId) {
   historyList.innerHTML = versions.map((version) => {
     const notes = (version.notes || '').trim();
     const notesPreview = notes ? escapeHtml(notes.slice(0, 90)) : 'No notes';
+    const itemType = normalizeItemType(version.item_type);
     return `
       <article class="history-entry">
         <div class="history-entry-head">
           <p class="history-entry-time">${escapeHtml(formatDateTime(version.created_at))}</p>
           <p class="history-entry-source">${escapeHtml(version.source || 'update')}</p>
         </div>
-        <p class="history-entry-meta">Username: ${escapeHtml(version.username)}</p>
+        <p class="history-entry-meta">Type: ${escapeHtml(formatItemType(itemType))}</p>
+        <p class="history-entry-meta">Username: ${escapeHtml(itemType === 'secure_note' ? '—' : version.username)}</p>
         <p class="history-entry-meta">Site: ${escapeHtml(version.site)}</p>
         <p class="history-entry-meta">Folder: ${escapeHtml(version.folder || '—')}</p>
         <p class="history-entry-meta">Tags: ${escapeHtml(Array.isArray(version.tags) && version.tags.length > 0 ? version.tags.join(', ') : '—')}</p>
@@ -788,18 +847,13 @@ function renderTable() {
         >★</button>
       </td>
       <td>${escapeHtml(item.site)}</td>
+      <td>${escapeHtml(formatItemType(item.item_type))}</td>
       <td>${escapeHtml(item.folder || '—')}</td>
       <td>${renderTags(item.tags)}</td>
-      <td>${escapeHtml(item.username)}</td>
-      <td>${escapeHtml(item.password)}</td>
+      <td>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.username)}</td>
+      <td>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.password)}</td>
       <td>${escapeHtml(item.notes || '')}</td>
-      <td class="actions">
-        <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${escapeHtml(item.site)}">Copy User</button>
-        <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${escapeHtml(item.site)}">Copy Pass</button>
-        <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.site)}">Edit</button>
-        <button type="button" data-action="history" data-id="${item.id}" class="action-neutral" aria-label="View history for ${escapeHtml(item.site)}">History</button>
-        <button type="button" data-action="delete" data-id="${item.id}" class="action-danger" aria-label="Delete ${escapeHtml(item.site)}">Delete</button>
-      </td>
+      <td class="actions">${renderItemActions(item)}</td>
     </tr>
   `).join('');
 
@@ -822,6 +876,10 @@ function renderTable() {
           </dd>
         </div>
         <div>
+          <dt>Type</dt>
+          <dd>${escapeHtml(formatItemType(item.item_type))}</dd>
+        </div>
+        <div>
           <dt>Folder</dt>
           <dd>${escapeHtml(item.folder || '—')}</dd>
         </div>
@@ -831,24 +889,18 @@ function renderTable() {
         </div>
         <div>
           <dt>Username</dt>
-          <dd>${escapeHtml(item.username)}</dd>
+          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.username)}</dd>
         </div>
         <div>
           <dt>Password</dt>
-          <dd>${escapeHtml(item.password)}</dd>
+          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.password)}</dd>
         </div>
         <div>
           <dt>Notes</dt>
           <dd>${escapeHtml(item.notes || '—')}</dd>
         </div>
       </dl>
-      <div class="card-actions">
-        <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${escapeHtml(item.site)}">Copy User</button>
-        <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${escapeHtml(item.site)}">Copy Pass</button>
-        <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${escapeHtml(item.site)}">Edit</button>
-        <button type="button" data-action="history" data-id="${item.id}" class="action-neutral" aria-label="View history for ${escapeHtml(item.site)}">History</button>
-        <button type="button" data-action="delete" data-id="${item.id}" class="action-danger" aria-label="Delete ${escapeHtml(item.site)}">Delete</button>
-      </div>
+      <div class="card-actions">${renderItemActions(item)}</div>
     </article>
   `).join('');
 }
@@ -858,8 +910,9 @@ function openModal(item = null, triggerElement = null) {
   modalReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
 
   if (!item) {
-    modalTitle.textContent = 'Add Password';
+    modalTitle.textContent = 'Add Entry';
     vaultId.value = '';
+    if (itemTypeInput) itemTypeInput.value = 'login';
     siteInput.value = '';
     usernameInput.value = '';
     passwordInput.value = '';
@@ -874,8 +927,9 @@ function openModal(item = null, triggerElement = null) {
     if (generatorNumbers) generatorNumbers.checked = true;
     if (generatorSymbols) generatorSymbols.checked = true;
   } else {
-    modalTitle.textContent = 'Edit Password';
+    modalTitle.textContent = 'Edit Entry';
     vaultId.value = item.id;
+    if (itemTypeInput) itemTypeInput.value = normalizeItemType(item.item_type);
     siteInput.value = item.site;
     usernameInput.value = item.username;
     passwordInput.value = item.password;
@@ -885,6 +939,7 @@ function openModal(item = null, triggerElement = null) {
     if (favoriteInput) favoriteInput.checked = Boolean(item.is_favorite);
   }
 
+  applyItemTypeUi(itemTypeInput?.value || 'login');
   modal.showModal();
   updatePasswordStrength();
   window.setTimeout(() => {
@@ -942,6 +997,16 @@ themeToggle?.addEventListener('click', () => {
   window.localStorage.setItem('vaultpass_theme', next);
 });
 passwordInput?.addEventListener('input', updatePasswordStrength);
+itemTypeInput?.addEventListener('change', () => {
+  applyItemTypeUi(itemTypeInput.value);
+  if (normalizeItemType(itemTypeInput.value) === 'secure_note') {
+    passwordStrengthLabel.textContent = 'Strength: —';
+    passwordStrengthFill.style.width = '0%';
+    passwordStrengthFill.style.background = '#c8ccd5';
+  } else {
+    updatePasswordStrength();
+  }
+});
 generatorLength?.addEventListener('input', () => {
   if (generatorLengthValue) {
     generatorLengthValue.textContent = String(generatorLength.value);
@@ -1115,6 +1180,7 @@ vaultForm?.addEventListener('submit', async (e) => {
 
   const payload = {
     site: siteInput.value.trim(),
+    item_type: normalizeItemType(itemTypeInput?.value || 'login'),
     username: usernameInput.value.trim(),
     password: passwordInput.value,
     notes: notesInput.value.trim(),
@@ -1123,8 +1189,18 @@ vaultForm?.addEventListener('submit', async (e) => {
     is_favorite: favoriteInput?.checked ? 1 : 0,
   };
 
-  if (!payload.site || !payload.username || !payload.password) {
+  if (!payload.site) {
+    modalError.textContent = 'Site is required.';
+    return;
+  }
+
+  if (payload.item_type === 'login' && (!payload.username || !payload.password)) {
     modalError.textContent = 'Site, username, and password are required.';
+    return;
+  }
+
+  if (payload.item_type === 'secure_note' && !payload.notes) {
+    modalError.textContent = 'Secure note content is required.';
     return;
   }
 
@@ -1137,10 +1213,10 @@ vaultForm?.addEventListener('submit', async (e) => {
         id: Number(vaultId.value),
         ...payload,
       });
-      showToast('Password entry updated.');
+      showToast('Entry updated.');
     } else {
       await requestApi('../api/vault/create.php', 'POST', payload);
-      showToast('Password entry added.');
+      showToast('Entry added.');
     }
 
     closeModal();
@@ -1164,6 +1240,10 @@ async function handleVaultAction(target) {
   if (!item) return;
 
   if (action === 'copy-user') {
+    if (normalizeItemType(item.item_type) === 'secure_note') {
+      showToast('Secure note entries do not have usernames.', 'error');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(item.username);
       showToast(`Username copied for ${item.site}.`);
@@ -1174,6 +1254,10 @@ async function handleVaultAction(target) {
   }
 
   if (action === 'copy-pass') {
+    if (normalizeItemType(item.item_type) === 'secure_note') {
+      showToast('Secure note entries do not have passwords.', 'error');
+      return;
+    }
     try {
       await navigator.clipboard.writeText(item.password);
       showToast(`Password copied for ${item.site}.`);
