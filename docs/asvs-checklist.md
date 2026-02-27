@@ -32,7 +32,7 @@ Scope: Practical subset for current architecture
 - [x] Structured API error envelope with request id
 - [x] Audit events for auth and vault mutations
 - [x] Security events can be viewed by user (dashboard security modal)
-- [ ] Log retention/rotation policy documented
+- [x] Log retention/rotation policy documented (`docs/log-retention-policy.md`)
 
 ## V9 Data Protection
 - [x] Vault data encryption at rest

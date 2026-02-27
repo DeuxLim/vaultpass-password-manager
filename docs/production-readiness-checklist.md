@@ -8,6 +8,7 @@ Use this checklist before making VaultPass available to real users.
 - [ ] Database uses dedicated non-root app user with least privilege.
 - [ ] Backups tested: schema + data restore drill completed.
 - [ ] Server logs, rotation, and alerting configured.
+  - Reference: `docs/log-retention-policy.md`
 
 ## App Configuration
 
