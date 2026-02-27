@@ -1,4 +1,5 @@
 const formsBound = new WeakSet();
+const formSaveState = new WeakMap();
 let matchedCredentials = [];
 let promptElement = null;
 let statusElement = null;
@@ -250,6 +251,38 @@ function renderPrompt(credentials) {
   setStatus(`${matchedCredentials.length} match${matchedCredentials.length === 1 ? '' : 'es'} found`);
 }
 
+function shouldProcessSubmit(form, username, password) {
+  const existing = formSaveState.get(form) || {
+    inFlight: false,
+    fingerprint: '',
+    timestamp: 0,
+  };
+  const now = Date.now();
+  const fingerprint = `${username}\u0000${password}`;
+  const duplicateWindowMs = 2500;
+
+  if (existing.inFlight && existing.fingerprint === fingerprint) return false;
+  if (existing.fingerprint === fingerprint && now - existing.timestamp < duplicateWindowMs) return false;
+
+  formSaveState.set(form, {
+    inFlight: true,
+    fingerprint,
+    timestamp: now,
+  });
+  return true;
+}
+
+function releaseSubmitLock(form, { keepFingerprint = true } = {}) {
+  const existing = formSaveState.get(form);
+  if (!existing) return;
+
+  formSaveState.set(form, {
+    inFlight: false,
+    fingerprint: keepFingerprint ? existing.fingerprint : '',
+    timestamp: keepFingerprint ? existing.timestamp : 0,
+  });
+}
+
 function formSubmitHandler(form) {
   return () => {
     const fields = detectLoginFormFields(form);
@@ -258,10 +291,14 @@ function formSubmitHandler(form) {
     const username = String(fields.username?.value || '').trim();
     const password = String(fields.password?.value || '');
     if (!username || !password) return;
+    if (!shouldProcessSubmit(form, username, password)) return;
 
     const siteLabel = window.location.hostname || 'this site';
     const shouldSave = window.confirm(`Save this login to VaultPass for ${siteLabel}?`);
-    if (!shouldSave) return;
+    if (!shouldSave) {
+      releaseSubmitLock(form, { keepFingerprint: false });
+      return;
+    }
 
     chrome.runtime.sendMessage({
       type: 'EXT_SAVE_SUBMITTED_LOGIN',
@@ -271,12 +308,16 @@ function formSubmitHandler(form) {
         password,
       },
     }, (response) => {
-      if (chrome.runtime.lastError) return;
-      if (!response?.ok) return;
-      if (response.mode === 'created') {
-        setStatus('Saved as new VaultPass item');
-      } else if (response.mode === 'updated') {
-        setStatus('Updated existing VaultPass item');
+      try {
+        if (chrome.runtime.lastError) return;
+        if (!response?.ok) return;
+        if (response.mode === 'created') {
+          setStatus('Saved as new VaultPass item');
+        } else if (response.mode === 'updated') {
+          setStatus('Updated existing VaultPass item');
+        }
+      } finally {
+        releaseSubmitLock(form);
       }
     });
   };
