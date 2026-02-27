@@ -93,6 +93,7 @@ let parsedCsvRows = [];
 let sessionPolicy = null;
 let featureFlags = { zeroKnowledgeClientEncryption: false };
 let zkPassphrase = '';
+let zkKeyMaterialStatus = { loaded: false, available: false, has: false };
 
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
@@ -224,14 +225,70 @@ function saveZkPassphraseToSession(passphrase) {
 
 async function ensureZkPassphrase(interactive = false) {
   const existing = loadZkPassphraseFromSession();
-  if (existing) return existing;
+  if (existing) {
+    await syncZkKeyMaterial(existing, interactive);
+    return existing;
+  }
   if (!interactive) return '';
 
   const entered = window.prompt('Enter your Vault encryption passphrase for client-side encrypted entries:');
   const normalized = String(entered || '').trim();
   if (!normalized) return '';
   saveZkPassphraseToSession(normalized);
+  await syncZkKeyMaterial(normalized, interactive);
   return normalized;
+}
+
+async function loadZkKeyMaterialStatus() {
+  if (!featureFlags.zeroKnowledgeClientEncryption) {
+    zkKeyMaterialStatus = { loaded: true, available: false, has: false };
+    return zkKeyMaterialStatus;
+  }
+  if (zkKeyMaterialStatus.loaded) {
+    return zkKeyMaterialStatus;
+  }
+
+  try {
+    const data = await requestApi('../api/auth/key-material.php', 'GET');
+    zkKeyMaterialStatus = {
+      loaded: true,
+      available: Boolean(data?.available),
+      has: Boolean(data?.has_key_material),
+    };
+  } catch (_error) {
+    zkKeyMaterialStatus = { loaded: true, available: false, has: false };
+  }
+
+  return zkKeyMaterialStatus;
+}
+
+async function syncZkKeyMaterial(passphrase, interactive) {
+  if (!featureFlags.zeroKnowledgeClientEncryption) return;
+  if (!passphrase) return;
+
+  const status = await loadZkKeyMaterialStatus();
+  if (!status.available || status.has || !interactive) return;
+
+  try {
+    const salt = window.crypto.getRandomValues(new Uint8Array(16));
+    const dek = window.crypto.getRandomValues(new Uint8Array(32));
+    const iv = window.crypto.getRandomValues(new Uint8Array(12));
+    const kek = await deriveZkKey(passphrase, salt);
+    const wrappedDekBuffer = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, kek, dek);
+    const wrappedDek = joinBytes([iv, new Uint8Array(wrappedDekBuffer)]);
+
+    await csrfReady;
+    await requestApi('../api/auth/key-material-save.php', 'POST', {
+      encrypted_dek_blob: bytesToBase64(wrappedDek),
+      kdf_algorithm: 'PBKDF2',
+      kdf_salt_b64: bytesToBase64(salt),
+      kdf_iterations: ZK_PBKDF2_ITERATIONS,
+      key_version: 1,
+    });
+    zkKeyMaterialStatus = { loaded: true, available: true, has: true };
+  } catch (error) {
+    showToast(error.message || 'Unable to initialize key material.', 'error');
+  }
 }
 
 async function encryptClientValue(value, passphrase) {
@@ -1142,6 +1199,8 @@ async function loadSession() {
   featureFlags = {
     zeroKnowledgeClientEncryption: Boolean(data?.feature_flags?.zero_knowledge_client_encryption),
   };
+  zkKeyMaterialStatus = { loaded: false, available: false, has: false };
+  await loadZkKeyMaterialStatus();
   renderSessionPolicy();
 
   if (!data?.authenticated) {
