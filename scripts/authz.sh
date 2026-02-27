@@ -76,6 +76,7 @@ for path in \
   /api/auth/2fa-status.php \
   /api/auth/key-material.php \
   /api/auth/security-events.php \
+  /api/emergency-access/list.php \
   /api/shared-vault/list.php \
   /api/shared-vault/invitations.php \
   /api/shared-vault/members.php?vault_id=1 \
@@ -93,6 +94,10 @@ for path in \
   /api/auth/2fa-enable.php \
   /api/auth/2fa-disable.php \
   /api/auth/key-material-save.php \
+  /api/emergency-access/grant.php \
+  /api/emergency-access/revoke.php \
+  /api/emergency-access/request.php \
+  /api/emergency-access/decide.php \
   /api/shared-vault/create.php \
   /api/shared-vault/update.php \
   /api/shared-vault/delete.php \
