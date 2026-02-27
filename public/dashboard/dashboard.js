@@ -1326,7 +1326,11 @@ function renderSharedVaults() {
         <p class="shared-vault-name">${escapeHtml(vault.name)}</p>
         <p class="shared-vault-meta">Role: ${escapeHtml(vault.role)} · Members: ${Number(vault.member_count || 0)}</p>
       </div>
-      <p class="shared-vault-meta">Updated ${new Date(vault.updated_at).toLocaleDateString()}</p>
+      <div class="shared-vault-actions">
+        <p class="shared-vault-meta">Updated ${new Date(vault.updated_at).toLocaleDateString()}</p>
+        ${String(vault.role) === 'owner' ? `<button type="button" class="btn btn-ghost" data-action="shared-vault-rename" data-vault-id="${vault.id}">Rename</button>` : ''}
+        ${String(vault.role) === 'owner' ? `<button type="button" class="btn btn-ghost danger" data-action="shared-vault-delete" data-vault-id="${vault.id}">Delete</button>` : ''}
+      </div>
     </article>
   `).join('');
 }
@@ -1477,6 +1481,43 @@ async function createSharedVault() {
   await loadSharedVaults();
   await loadSharedMembers();
   showToast('Shared vault created.');
+}
+
+async function renameSharedVault(vaultId) {
+  if (!sharedVaultError) return;
+  sharedVaultError.textContent = '';
+  const current = sharedVaults.find((vault) => Number(vault.id) === Number(vaultId));
+  const existingName = String(current?.name || '');
+  const nextName = String(window.prompt('Rename shared vault:', existingName) || '').trim();
+  if (!nextName || nextName === existingName) return;
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/update.php', 'POST', {
+    vault_id: vaultId,
+    name: nextName,
+  });
+  await loadSharedVaults();
+  showToast('Shared vault renamed.');
+}
+
+async function deleteSharedVault(vaultId) {
+  if (!sharedVaultError) return;
+  sharedVaultError.textContent = '';
+  const current = sharedVaults.find((vault) => Number(vault.id) === Number(vaultId));
+  const label = current?.name ? `"${current.name}"` : `#${vaultId}`;
+  const confirmed = window.confirm(`Delete shared vault ${label}? Shared bindings on items will be removed.`);
+  if (!confirmed) return;
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/delete.php', 'POST', {
+    vault_id: vaultId,
+  });
+  if (Number(selectedSharedVaultId || 0) === Number(vaultId)) {
+    selectedSharedVaultId = 0;
+  }
+  await loadSharedVaults();
+  await loadSharedMembers();
+  showToast('Shared vault deleted.');
 }
 
 async function loadSharedInvitations() {
@@ -2068,6 +2109,28 @@ sharedInviteList?.addEventListener('click', async (e) => {
     }
   } catch (error) {
     if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to update invitation.';
+  }
+});
+
+sharedVaultList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+
+  const vaultId = Number(button.dataset.vaultId || 0);
+  if (!vaultId) return;
+
+  try {
+    if (button.dataset.action === 'shared-vault-rename') {
+      await renameSharedVault(vaultId);
+      return;
+    }
+    if (button.dataset.action === 'shared-vault-delete') {
+      await deleteSharedVault(vaultId);
+    }
+  } catch (error) {
+    if (sharedVaultError) sharedVaultError.textContent = error.message || 'Unable to update shared vault.';
   }
 });
 

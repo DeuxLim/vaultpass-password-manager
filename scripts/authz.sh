@@ -94,6 +94,8 @@ for path in \
   /api/auth/2fa-disable.php \
   /api/auth/key-material-save.php \
   /api/shared-vault/create.php \
+  /api/shared-vault/update.php \
+  /api/shared-vault/delete.php \
   /api/shared-vault/invite.php \
   /api/shared-vault/respond-invite.php \
   /api/shared-vault/update-member-role.php \

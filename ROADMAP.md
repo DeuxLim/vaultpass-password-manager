@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **77%** (Phases 1-3 complete; Phase 4 shared-vault lifecycle + ownership transfer edge cases underway; Phase 7 validation pending)
+Project Progress: **78%** (Phases 1-3 complete; Phase 4 shared-vault lifecycle management and edge cases underway; Phase 7 validation pending)
 
 Last updated: 2026-02-27
 Owner: VaultPass core team
@@ -129,6 +129,7 @@ Scope:
 - ✅ Dashboard shared item workflows (target vault selection + viewer-safe action controls).
 - ✅ Shared vault invite permission matrix baseline (owner can invite editor/viewer; editor can invite viewer only).
 - ✅ Shared vault ownership transfer workflow (API + dashboard action).
+- ✅ Shared vault lifecycle management controls (rename/delete) for owners.
 - Shared vault dashboard UX polish and edge-case handling.
 - Emergency access workflow.
 - Password health dashboard (weak/reused/old).
