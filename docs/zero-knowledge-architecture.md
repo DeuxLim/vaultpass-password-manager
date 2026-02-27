@@ -1,7 +1,7 @@
 # VaultPass Zero-Knowledge Architecture Decision (Phase 3)
 
-Last updated: 2026-02-23
-Status: Approved for implementation planning
+Last updated: 2026-02-27
+Status: Phase B initial implementation shipped (feature-flagged)
 
 ## Decision Summary
 - Adopt a zero-knowledge model for **new vault records**.
@@ -17,9 +17,9 @@ Status: Approved for implementation planning
 6. Backend stores encrypted payload as opaque ciphertext.
 
 ## Transitional Plan
-- Phase A (current): server-side encryption at rest (already implemented).
-- Phase B: optional client-side encryption for new records behind feature flag.
-- Phase C: migrate existing records lazily on edit/read-write.
+- Phase A: server-side encryption at rest (implemented).
+- Phase B: optional client-side encryption for new records behind feature flag (implemented for web dashboard).
+- Phase C: migrate existing records lazily on edit/read-write (pending).
 
 ## Data Model Additions (Planned)
 - `user_key_material`:
@@ -41,7 +41,7 @@ Status: Approved for implementation planning
 - WebCrypto-only implementation vs crypto library dependency.
 
 ## Implementation Milestones
-1. Add `user_key_material` schema and API.
-2. Introduce client crypto module + envelope format.
-3. Add feature flag for zero-knowledge vault writes.
-4. Add migration telemetry and user progress tracking.
+1. Add `user_key_material` schema and API. (pending)
+2. Introduce client crypto module + envelope format. (done)
+3. Add feature flag for zero-knowledge vault writes. (done)
+4. Add migration telemetry and user progress tracking. (pending)

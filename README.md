@@ -52,6 +52,7 @@ SESSION_COOKIE_SECURE=false
 SESSION_SAMESITE=Lax
 SESSION_IDLE_TIMEOUT=1800
 SESSION_ABSOLUTE_TIMEOUT=2592000
+ZERO_KNOWLEDGE_CLIENT_ENCRYPTION=false
 
 # Optional rate-limit tuning
 LOGIN_RATE_LIMIT_WINDOW=60
@@ -78,6 +79,7 @@ BACKUP_KDF_ITERATIONS=210000
 
 `SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT` are in seconds.
 `ACCOUNT_LOCKOUT_WINDOW`, `ACCOUNT_LOCKOUT_MAX`, and `ACCOUNT_LOCKOUT_DURATION` control temporary account lockouts after repeated failed logins.
+`ZERO_KNOWLEDGE_CLIENT_ENCRYPTION=true` enables optional client-side field encryption for new vault writes in the web dashboard.
 
 If you need to clear a lockout manually (admin operation), run:
 

@@ -31,7 +31,7 @@ Status: Signed off with one accepted risk (zero-knowledge phase)
 - Medium findings: 1 (tracked in roadmap)
 
 ## Medium Findings (Tracked)
-1. Zero-knowledge client-side encryption for new records is not yet implemented.
+1. Zero-knowledge key material model (`user_key_material`) and lazy migration are pending.
 
 ## Next Review Trigger
 - Before public launch

@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **52%** (Phases 1-2 complete; Phase 3 largely complete except zero-knowledge implementation; Phase 7 validation pending)
+Project Progress: **60%** (Phases 1-3 functionally complete with feature-flagged client encryption; Phase 7 validation pending)
 
 Last updated: 2026-02-23
 Owner: VaultPass core team
@@ -111,7 +111,7 @@ Scope:
 - ✅ Security review checklist aligned to OWASP ASVS subset.
 
 Exit criteria:
-- ⬜ Client-side encryption key flow defined and implemented for new vault records.
+- ✅ Client-side encryption key flow defined and implemented for new vault records (feature-flagged web path).
 - ✅ 2FA available for user accounts.
 - ✅ Users can view active sessions and revoke any session except current one.
 - ✅ Security checklist completed and signed off.

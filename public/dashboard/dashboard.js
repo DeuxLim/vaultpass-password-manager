@@ -91,6 +91,12 @@ let toastTimer = null;
 let parsedCsvHeaders = [];
 let parsedCsvRows = [];
 let sessionPolicy = null;
+let featureFlags = { zeroKnowledgeClientEncryption: false };
+let zkPassphrase = '';
+
+const ZK_ENVELOPE_PREFIX = 'zkv1:';
+const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
+const ZK_PBKDF2_ITERATIONS = 210000;
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
@@ -142,6 +148,159 @@ function showToast(message, type = 'success') {
   toastTimer = window.setTimeout(() => {
     toastRegion.classList.remove('is-visible');
   }, 2600);
+}
+
+function isZkEnvelope(value) {
+  return String(value || '').startsWith(ZK_ENVELOPE_PREFIX);
+}
+
+function bytesToBase64(bytes) {
+  let binary = '';
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return window.btoa(binary);
+}
+
+function base64ToBytes(base64) {
+  const binary = window.atob(base64);
+  const output = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    output[i] = binary.charCodeAt(i);
+  }
+  return output;
+}
+
+function joinBytes(parts) {
+  const total = parts.reduce((sum, part) => sum + part.length, 0);
+  const joined = new Uint8Array(total);
+  let offset = 0;
+  parts.forEach((part) => {
+    joined.set(part, offset);
+    offset += part.length;
+  });
+  return joined;
+}
+
+async function deriveZkKey(passphrase, salt) {
+  const encoder = new TextEncoder();
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw',
+    encoder.encode(passphrase),
+    'PBKDF2',
+    false,
+    ['deriveKey']
+  );
+
+  return window.crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt,
+      iterations: ZK_PBKDF2_ITERATIONS,
+      hash: 'SHA-256',
+    },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+}
+
+function loadZkPassphraseFromSession() {
+  if (zkPassphrase) return zkPassphrase;
+  const stored = window.sessionStorage.getItem(ZK_PASSPHRASE_SESSION_KEY) || '';
+  zkPassphrase = stored.trim();
+  return zkPassphrase;
+}
+
+function saveZkPassphraseToSession(passphrase) {
+  zkPassphrase = String(passphrase || '').trim();
+  if (zkPassphrase) {
+    window.sessionStorage.setItem(ZK_PASSPHRASE_SESSION_KEY, zkPassphrase);
+  } else {
+    window.sessionStorage.removeItem(ZK_PASSPHRASE_SESSION_KEY);
+  }
+}
+
+async function ensureZkPassphrase(interactive = false) {
+  const existing = loadZkPassphraseFromSession();
+  if (existing) return existing;
+  if (!interactive) return '';
+
+  const entered = window.prompt('Enter your Vault encryption passphrase for client-side encrypted entries:');
+  const normalized = String(entered || '').trim();
+  if (!normalized) return '';
+  saveZkPassphraseToSession(normalized);
+  return normalized;
+}
+
+async function encryptClientValue(value, passphrase) {
+  const plain = String(value || '');
+  if (!plain) return plain;
+  if (!window.crypto?.subtle) {
+    throw new Error('WebCrypto API unavailable in this browser.');
+  }
+
+  const salt = window.crypto.getRandomValues(new Uint8Array(16));
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  const key = await deriveZkKey(passphrase, salt);
+  const encoded = new TextEncoder().encode(plain);
+  const cipherBuffer = await window.crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
+  const packed = joinBytes([salt, iv, new Uint8Array(cipherBuffer)]);
+  return `${ZK_ENVELOPE_PREFIX}${bytesToBase64(packed)}`;
+}
+
+async function decryptClientValue(value, passphrase) {
+  const input = String(value || '');
+  if (!isZkEnvelope(input)) return input;
+  if (!window.crypto?.subtle) {
+    throw new Error('WebCrypto API unavailable in this browser.');
+  }
+
+  const encoded = input.slice(ZK_ENVELOPE_PREFIX.length);
+  const packed = base64ToBytes(encoded);
+  if (packed.length <= 28) {
+    throw new Error('Invalid encrypted payload format.');
+  }
+
+  const salt = packed.slice(0, 16);
+  const iv = packed.slice(16, 28);
+  const ciphertext = packed.slice(28);
+  const key = await deriveZkKey(passphrase, salt);
+  const plainBuffer = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  return new TextDecoder().decode(plainBuffer);
+}
+
+function itemContainsClientEncryptedData(item) {
+  return isZkEnvelope(item?.username) || isZkEnvelope(item?.password) || isZkEnvelope(item?.notes);
+}
+
+async function decryptItemsIfNeeded(sourceItems) {
+  const hasClientEncrypted = sourceItems.some(itemContainsClientEncryptedData);
+  if (!hasClientEncrypted) return sourceItems;
+
+  const passphrase = await ensureZkPassphrase(false);
+  if (!passphrase) {
+    showToast('Some entries are client-side encrypted. Open an encrypted entry and provide passphrase.', 'error');
+    return sourceItems;
+  }
+
+  const decrypted = [];
+  for (const item of sourceItems) {
+    const next = { ...item };
+    try {
+      next.username = await decryptClientValue(item.username || '', passphrase);
+      next.password = await decryptClientValue(item.password || '', passphrase);
+      next.notes = await decryptClientValue(item.notes || '', passphrase);
+      next.client_encrypted = itemContainsClientEncryptedData(item);
+    } catch (_error) {
+      showToast('Unable to decrypt some client-encrypted entries. Check passphrase.', 'error');
+      return sourceItems;
+    }
+    decrypted.push(next);
+  }
+
+  return decrypted;
 }
 
 function normalizeItemType(value) {
@@ -980,6 +1139,9 @@ async function loadSession() {
   const res = await fetch('../api/auth/session.php', { credentials: 'same-origin' });
   const data = await res.json();
   sessionPolicy = data?.session_policy || null;
+  featureFlags = {
+    zeroKnowledgeClientEncryption: Boolean(data?.feature_flags?.zero_knowledge_client_encryption),
+  };
   renderSessionPolicy();
 
   if (!data?.authenticated) {
@@ -993,7 +1155,8 @@ async function loadSession() {
 
 async function loadItems() {
   const data = await requestApi('../api/vault/list.php', 'GET');
-  items = data.items || [];
+  const incoming = Array.isArray(data.items) ? data.items : [];
+  items = await decryptItemsIfNeeded(incoming);
   populateFolderFilter();
   renderHealthSummary();
   renderTable();
@@ -1230,6 +1393,23 @@ vaultForm?.addEventListener('submit', async (e) => {
   if (payload.item_type === 'secure_note' && !payload.notes) {
     modalError.textContent = 'Secure note content is required.';
     return;
+  }
+
+  if (featureFlags.zeroKnowledgeClientEncryption) {
+    try {
+      const passphrase = await ensureZkPassphrase(true);
+      if (!passphrase) {
+        modalError.textContent = 'Encryption passphrase is required when zero-knowledge mode is enabled.';
+        return;
+      }
+
+      payload.username = await encryptClientValue(payload.username, passphrase);
+      payload.password = await encryptClientValue(payload.password, passphrase);
+      payload.notes = await encryptClientValue(payload.notes, passphrase);
+    } catch (error) {
+      modalError.textContent = error.message || 'Unable to encrypt entry in browser.';
+      return;
+    }
   }
 
   try {

@@ -37,9 +37,9 @@ Scope: Practical subset for current architecture
 ## V9 Data Protection
 - [x] Vault data encryption at rest
 - [x] Encrypted backup export/import
-- [ ] Zero-knowledge client-side encryption for new records
+- [x] Zero-knowledge client-side encryption for new records (feature-flagged `ZERO_KNOWLEDGE_CLIENT_ENCRYPTION`)
 
 ## Gap Closure Plan (Current Sprint Focus)
 1. Done: 2FA + session controls + audit visibility.
 2. Done: timeout policy surfaced + endpoint authorization coverage (`scripts/authz.sh`).
-3. Next: zero-knowledge key material model + feature-flagged client encryption.
+3. Next: key material server model (`user_key_material`) and lazy migration for existing records.

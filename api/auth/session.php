@@ -6,6 +6,7 @@ require __DIR__ . '/../bootstrap.php';
 
 require_method('GET');
 
+$zeroKnowledgeEnabled = filter_var(getenv('ZERO_KNOWLEDGE_CLIENT_ENCRYPTION') ?: 'false', FILTER_VALIDATE_BOOLEAN);
 $rawSessionUserId = $_SESSION['user_id'] ?? null;
 $userId = current_user_id();
 
@@ -19,6 +20,9 @@ if (!$userId) {
         'ok' => true,
         'authenticated' => false,
         'session_policy' => session_timeout_policy(),
+        'feature_flags' => [
+            'zero_knowledge_client_encryption' => $zeroKnowledgeEnabled,
+        ],
     ]);
 }
 
@@ -37,6 +41,9 @@ json_response([
     'ok' => true,
     'authenticated' => true,
     'session_policy' => session_timeout_policy(),
+    'feature_flags' => [
+        'zero_knowledge_client_encryption' => $zeroKnowledgeEnabled,
+    ],
     'user' => [
         'id' => $userId,
         'name' => (string)($_SESSION['user_name'] ?? ''),
