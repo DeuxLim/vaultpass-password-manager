@@ -36,7 +36,7 @@ Use:
 | 13 | Popup manual Fill action | Active tab receives fill and updates fields |
 | 13a | Popup Fill when receiver missing | Extension injects content script and retries successfully |
 | 14 | Submit populated form for existing credential | Save confirm prompt appears; confirming updates existing vault entry |
-| 15 | Submit populated form for new username | Save confirm prompt appears; confirming creates new entry or updates match |
+| 15 | Submit populated form for new username | Save confirm prompt appears; confirming creates new entry or updates match; rapid duplicate submits are deduped |
 | 16 | Submit with empty username | No save call performed |
 | 17 | Submit with empty password | No save call performed |
 | 18 | Reload page after save | Prompt still appears with credentials |
@@ -79,3 +79,4 @@ Implementation note:
 - For pages with multiple login forms, extension fill prioritizes the currently focused/last-interacted form.
 - Save prompt deduplication: repeated/near-simultaneous submit events for the same form payload are collapsed into a single confirm/save attempt.
 - Background save API deduplication: repeated identical save messages inside a short window are ignored server-call side.
+- Fixture support: Case 15 includes a `Submit Twice Quickly` helper button for dedupe-path checks.

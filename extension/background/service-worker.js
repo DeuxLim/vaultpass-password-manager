@@ -111,6 +111,12 @@ function sanitizeCredential(credential) {
   };
 }
 
+function isScriptableTabUrl(value) {
+  const url = String(value || '').trim().toLowerCase();
+  if (!url) return false;
+  return url.startsWith('http://') || url.startsWith('https://');
+}
+
 function isDuplicateSaveRequest(host, username, password) {
   const key = `${host}\u0000${username.toLowerCase()}\u0000${password}`;
   const now = Date.now();
@@ -181,6 +187,9 @@ async function fillInActiveTab(credential) {
   if (!activeTab?.id) {
     return { ok: false, error: 'No active tab available' };
   }
+  if (!isScriptableTabUrl(activeTab.url)) {
+    return { ok: false, error: 'Autofill only works on http/https pages' };
+  }
 
   try {
     await chrome.tabs.sendMessage(activeTab.id, {
@@ -191,13 +200,24 @@ async function fillInActiveTab(credential) {
     const message = String(error?.message || '');
     const noReceiver = message.includes('Receiving end does not exist');
     if (!noReceiver) {
+      if (message.toLowerCase().includes('cannot access')) {
+        return { ok: false, error: 'Page does not allow extension scripting' };
+      }
       throw error;
     }
 
-    await chrome.scripting.executeScript({
-      target: { tabId: activeTab.id, allFrames: true },
-      files: ['content/content.js'],
-    });
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: activeTab.id, allFrames: true },
+        files: ['content/content.js'],
+      });
+    } catch (injectError) {
+      const injectMessage = String(injectError?.message || '');
+      if (injectMessage.toLowerCase().includes('cannot access')) {
+        return { ok: false, error: 'Page does not allow extension scripting' };
+      }
+      throw injectError;
+    }
 
     await chrome.tabs.sendMessage(activeTab.id, {
       type: 'EXT_FILL_CREDENTIAL',

@@ -105,7 +105,7 @@
       { id: 12, title: 'Subdomain simulation label', note: 'ui label app.localhost', user: { type: 'email', name: 'subdomain_email' }, pass: { name: 'subdomain_pass' }, badge: 'app.localhost' },
       { id: 13, title: 'Popup manual Fill target', note: 'use popup Fill here', user: { type: 'text', name: 'popup_user' }, pass: { name: 'popup_pass' } },
       { id: 14, title: 'Submit existing credential', note: 'should update matched record', user: { type: 'email', name: 'existing_email' }, pass: { name: 'existing_pass' } },
-      { id: 15, title: 'Submit new username', note: 'should create or update by match', user: { type: 'email', name: 'newuser_email' }, pass: { name: 'newuser_pass' } },
+      { id: 15, title: 'Submit new username', note: 'should create or update by match', user: { type: 'email', name: 'newuser_email' }, pass: { name: 'newuser_pass' }, duplicateSubmit: true },
       { id: 16, title: 'Empty username guard', note: 'leave username blank then submit', user: { type: 'text', name: 'blank_username' }, pass: { name: 'blank_username_pass' } },
       { id: 17, title: 'Empty password guard', note: 'leave password blank then submit', user: { type: 'email', name: 'blank_pass_email' }, pass: { name: 'blank_pass' } },
       { id: 18, title: 'Reload durability', note: 'refresh and retest prompt', user: { type: 'text', name: 'reload_user' }, pass: { name: 'reload_pass' } },
@@ -224,6 +224,17 @@
       submit.type = 'submit';
       submit.textContent = 'Submit Fixture Form';
       form.append(submit);
+
+      if (spec.duplicateSubmit) {
+        const submitTwice = document.createElement('button');
+        submitTwice.type = 'button';
+        submitTwice.textContent = 'Submit Twice Quickly';
+        submitTwice.addEventListener('click', () => {
+          form.requestSubmit();
+          setTimeout(() => form.requestSubmit(), 40);
+        });
+        form.append(submitTwice);
+      }
 
       form.addEventListener('submit', (event) => {
         event.preventDefault();
