@@ -9,7 +9,7 @@ require_csrf();
 $userId = require_auth();
 $body = request_body();
 
-if (!db_table_exists('shared_vaults') || !db_table_exists('shared_vault_members')) {
+if (!shared_vaults_available()) {
     json_response([
         'ok' => false,
         'error' => 'Shared vaults require migration 008',
@@ -35,20 +35,7 @@ if ($role === 'owner') {
 }
 
 $pdo = db();
-
-$accessStmt = $pdo->prepare(
-    'SELECT role
-     FROM shared_vault_members
-     WHERE shared_vault_id = :shared_vault_id
-       AND user_id = :user_id
-       AND invitation_status = \'accepted\'
-     LIMIT 1'
-);
-$accessStmt->execute([
-    'shared_vault_id' => $vaultId,
-    'user_id' => $userId,
-]);
-$access = $accessStmt->fetch();
+$access = find_shared_vault_membership($vaultId, $userId, true);
 if (!$access || !in_array((string)$access['role'], ['owner', 'editor'], true)) {
     json_response(['ok' => false, 'error' => 'Insufficient shared vault permissions'], 403);
 }
@@ -61,23 +48,55 @@ if (!$targetUser) {
 }
 
 $targetUserId = (int)$targetUser['id'];
-$status = 'accepted';
-$upsert = $pdo->prepare(
-    'INSERT INTO shared_vault_members (shared_vault_id, user_id, role, invitation_status, invited_by_user_id)
-     VALUES (:shared_vault_id, :user_id, :role, :invitation_status, :invited_by_user_id)
-     ON DUPLICATE KEY UPDATE
-       role = VALUES(role),
-       invitation_status = VALUES(invitation_status),
-       invited_by_user_id = VALUES(invited_by_user_id),
-       updated_at = CURRENT_TIMESTAMP'
+if ($targetUserId === $userId) {
+    json_response(['ok' => false, 'error' => 'You cannot invite yourself'], 422);
+}
+
+$existingStmt = $pdo->prepare(
+    'SELECT id, role, invitation_status
+     FROM shared_vault_members
+     WHERE shared_vault_id = :shared_vault_id
+       AND user_id = :user_id
+     LIMIT 1'
 );
-$upsert->execute([
+$existingStmt->execute([
     'shared_vault_id' => $vaultId,
     'user_id' => $targetUserId,
-    'role' => $role,
-    'invitation_status' => $status,
-    'invited_by_user_id' => $userId,
 ]);
+$existing = $existingStmt->fetch();
+if ($existing && (string)$existing['invitation_status'] === 'accepted') {
+    json_response(['ok' => false, 'error' => 'User is already an active shared vault member'], 409);
+}
+
+$status = 'pending';
+if ($existing) {
+    $updateStmt = $pdo->prepare(
+        'UPDATE shared_vault_members
+         SET role = :role,
+             invitation_status = :invitation_status,
+             invited_by_user_id = :invited_by_user_id,
+             updated_at = CURRENT_TIMESTAMP
+         WHERE id = :id'
+    );
+    $updateStmt->execute([
+        'role' => $role,
+        'invitation_status' => $status,
+        'invited_by_user_id' => $userId,
+        'id' => (int)$existing['id'],
+    ]);
+} else {
+    $insertStmt = $pdo->prepare(
+        'INSERT INTO shared_vault_members (shared_vault_id, user_id, role, invitation_status, invited_by_user_id)
+         VALUES (:shared_vault_id, :user_id, :role, :invitation_status, :invited_by_user_id)'
+    );
+    $insertStmt->execute([
+        'shared_vault_id' => $vaultId,
+        'user_id' => $targetUserId,
+        'role' => $role,
+        'invitation_status' => $status,
+        'invited_by_user_id' => $userId,
+    ]);
+}
 
 audit_log('shared_vault.invite', $userId, [
     'shared_vault_id' => $vaultId,

@@ -77,6 +77,7 @@ for path in \
   /api/auth/key-material.php \
   /api/auth/security-events.php \
   /api/shared-vault/list.php \
+  /api/shared-vault/invitations.php \
   /api/shared-vault/members.php?vault_id=1 \
   /api/vault/list.php \
   /api/vault/list-versions.php?item_id=1
@@ -94,6 +95,9 @@ for path in \
   /api/auth/key-material-save.php \
   /api/shared-vault/create.php \
   /api/shared-vault/invite.php \
+  /api/shared-vault/respond-invite.php \
+  /api/shared-vault/update-member-role.php \
+  /api/shared-vault/remove-member.php \
   /api/vault/create.php \
   /api/vault/update.php \
   /api/vault/delete.php \

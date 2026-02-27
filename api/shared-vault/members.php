@@ -12,7 +12,7 @@ if ($vaultId <= 0) {
     json_response(['ok' => false, 'error' => 'Valid vault_id is required'], 422);
 }
 
-if (!db_table_exists('shared_vaults') || !db_table_exists('shared_vault_members')) {
+if (!shared_vaults_available()) {
     json_response([
         'ok' => false,
         'error' => 'Shared vaults require migration 008',
@@ -21,24 +21,12 @@ if (!db_table_exists('shared_vaults') || !db_table_exists('shared_vault_members'
     ], 409);
 }
 
-$pdo = db();
-$accessStmt = $pdo->prepare(
-    'SELECT role
-     FROM shared_vault_members
-     WHERE shared_vault_id = :shared_vault_id
-       AND user_id = :user_id
-       AND invitation_status = \'accepted\'
-     LIMIT 1'
-);
-$accessStmt->execute([
-    'shared_vault_id' => $vaultId,
-    'user_id' => $userId,
-]);
-$access = $accessStmt->fetch();
+$access = find_shared_vault_membership($vaultId, $userId, true);
 if (!$access) {
     json_response(['ok' => false, 'error' => 'Access denied'], 403);
 }
 
+$pdo = db();
 $membersStmt = $pdo->prepare(
     'SELECT
         svm.id,

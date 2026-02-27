@@ -1,0 +1,30 @@
+<?php
+
+declare(strict_types=1);
+
+function shared_vaults_available(): bool
+{
+    return db_table_exists('shared_vaults') && db_table_exists('shared_vault_members');
+}
+
+function find_shared_vault_membership(int $vaultId, int $userId, bool $acceptedOnly = true): ?array
+{
+    $pdo = db();
+    $sql = 'SELECT id, shared_vault_id, user_id, role, invitation_status
+            FROM shared_vault_members
+            WHERE shared_vault_id = :shared_vault_id
+              AND user_id = :user_id';
+    if ($acceptedOnly) {
+        $sql .= ' AND invitation_status = \'accepted\'';
+    }
+    $sql .= ' LIMIT 1';
+
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([
+        'shared_vault_id' => $vaultId,
+        'user_id' => $userId,
+    ]);
+
+    $row = $stmt->fetch();
+    return is_array($row) ? $row : null;
+}

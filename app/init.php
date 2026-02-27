@@ -15,6 +15,7 @@ require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/two_factor.php';
 require_once __DIR__ . '/validators.php';
 require_once __DIR__ . '/zero_knowledge.php';
+require_once __DIR__ . '/shared_vaults.php';
 
 load_dotenv();
 start_app_session();

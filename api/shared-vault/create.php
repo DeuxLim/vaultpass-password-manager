@@ -9,7 +9,7 @@ require_csrf();
 $userId = require_auth();
 $body = request_body();
 
-if (!db_table_exists('shared_vaults') || !db_table_exists('shared_vault_members')) {
+if (!shared_vaults_available()) {
     json_response([
         'ok' => false,
         'error' => 'Shared vaults require migration 008',
