@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **86%** (Phases 1-3 complete; Phase 4 shared-vault + emergency access activation flows in progress; Phase 7 validation pending)
+Project Progress: **87%** (Phases 1-3 complete; Phase 4 shared-vault + emergency access activation flows in progress; Phase 7 validation pending)
 
 Last updated: 2026-02-27
 Owner: VaultPass core team
@@ -338,6 +338,7 @@ Tasks:
 - ✅ Save prompt after login submission.
 - ✅ Domain matching v1.
 - ✅ Defined 20-case local acceptance matrix and fixture page.
+- ✅ Extension reliability hardening (dedupe repeated submit save prompts and popup action clicks).
 Acceptance:
 - ⬜ Save + autofill works on defined test matrix.
 
