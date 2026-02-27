@@ -69,34 +69,26 @@ try {
             continue;
         }
 
-        $site = trim((string)($item['site'] ?? ''));
-        $itemType = normalize_item_type($item['item_type'] ?? 'login');
-        $folder = trim((string)($item['folder'] ?? ''));
-        $isFavorite = ((int)($item['is_favorite'] ?? 0)) === 1;
-        $username = trim((string)($item['username'] ?? ''));
-        $password = (string)($item['password'] ?? '');
-        $notes = trim((string)($item['notes'] ?? ''));
-        $tags = normalize_tags_input($item['tags'] ?? []);
-
-        if ($site === '') {
-            $errors[] = ['row' => $index + 1, 'error' => 'Site is required'];
+        $normalized = normalize_vault_item_payload($item);
+        $validationError = validate_vault_item_payload($normalized);
+        if ($validationError !== null) {
+            $errors[] = ['row' => $index + 1, 'error' => $validationError];
             continue;
         }
 
-        if ($itemType === 'login' && ($username === '' || $password === '')) {
-            $errors[] = ['row' => $index + 1, 'error' => 'Site, username, and password are required'];
-            continue;
-        }
-
-        if ($itemType === 'secure_note' && $notes === '') {
-            $errors[] = ['row' => $index + 1, 'error' => 'Secure note content is required'];
-            continue;
-        }
+        $site = $normalized['site'];
+        $itemType = $normalized['item_type'];
+        $folder = $normalized['folder'];
+        $isFavorite = $normalized['is_favorite'];
+        $username = $normalized['username'];
+        $password = $normalized['password'];
+        $notes = $normalized['notes'];
+        $tags = $normalized['tags'];
 
         $params = [
             'user_id' => $userId,
-            'site' => mb_substr($site, 0, 191),
-            'folder' => mb_substr($folder, 0, 120),
+            'site' => $site,
+            'folder' => $folder,
             'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
             'is_favorite' => $isFavorite ? 1 : 0,
             'username_enc' => encrypt_value($username),

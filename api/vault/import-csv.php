@@ -59,40 +59,40 @@ try {
             continue;
         }
 
-        $site = trim((string)($row['site'] ?? ''));
-        $itemType = normalize_item_type($row['item_type'] ?? 'login');
-        $folder = trim((string)($row['folder'] ?? ''));
-        $isFavoriteRaw = strtolower(trim((string)($row['is_favorite'] ?? '0')));
-        $isFavorite = in_array($isFavoriteRaw, ['1', 'true', 'yes', 'y'], true);
         $tagsInput = $row['tags'] ?? [];
-        $username = trim((string)($row['username'] ?? ''));
-        $password = (string)($row['password'] ?? '');
-        $notes = trim((string)($row['notes'] ?? ''));
 
         if (is_string($tagsInput)) {
             $tagsInput = array_map('trim', explode(',', $tagsInput));
         }
-        $tags = normalize_tags_input($tagsInput);
-
-        if ($site === '') {
-            $errors[] = ['row' => $index + 1, 'error' => 'Site is required'];
+        $normalized = normalize_vault_item_payload([
+            'site' => $row['site'] ?? '',
+            'item_type' => $row['item_type'] ?? 'login',
+            'folder' => $row['folder'] ?? '',
+            'is_favorite' => $row['is_favorite'] ?? 0,
+            'tags' => $tagsInput,
+            'username' => $row['username'] ?? '',
+            'password' => $row['password'] ?? '',
+            'notes' => $row['notes'] ?? '',
+        ]);
+        $validationError = validate_vault_item_payload($normalized);
+        if ($validationError !== null) {
+            $errors[] = ['row' => $index + 1, 'error' => $validationError];
             continue;
         }
 
-        if ($itemType === 'login' && ($username === '' || $password === '')) {
-            $errors[] = ['row' => $index + 1, 'error' => 'Site, username, and password are required'];
-            continue;
-        }
-
-        if ($itemType === 'secure_note' && $notes === '') {
-            $errors[] = ['row' => $index + 1, 'error' => 'Secure note content is required'];
-            continue;
-        }
+        $site = $normalized['site'];
+        $itemType = $normalized['item_type'];
+        $folder = $normalized['folder'];
+        $isFavorite = $normalized['is_favorite'];
+        $username = $normalized['username'];
+        $password = $normalized['password'];
+        $notes = $normalized['notes'];
+        $tags = $normalized['tags'];
 
         $params = [
             'user_id' => $userId,
-            'site' => mb_substr($site, 0, 191),
-            'folder' => mb_substr($folder, 0, 120),
+            'site' => $site,
+            'folder' => $folder,
             'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
             'is_favorite' => $isFavorite ? 1 : 0,
             'username_enc' => encrypt_value($username),

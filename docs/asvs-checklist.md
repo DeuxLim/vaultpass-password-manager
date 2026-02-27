@@ -26,7 +26,7 @@ Scope: Practical subset for current architecture
 - [x] Server-side required field checks on critical flows
 - [x] JSON error envelope with stable keys
 - [x] Escaping for user-displayed dynamic data in dashboard
-- [ ] Centralized reusable validators for all domain entities
+- [x] Centralized reusable validators for all domain entities (`app/validators.php`)
 
 ## V7 Error Handling & Logging
 - [x] Structured API error envelope with request id

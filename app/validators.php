@@ -60,3 +60,54 @@ function normalize_tags_input(mixed $tagsInput, int $maxTags = 20, int $maxTagLe
 
     return array_keys($normalizedTags);
 }
+
+function normalize_is_favorite_input(mixed $value): bool
+{
+    if (is_bool($value)) {
+        return $value;
+    }
+
+    if (is_int($value) || is_float($value)) {
+        return (int)$value === 1;
+    }
+
+    $raw = strtolower(trim((string)$value));
+    return in_array($raw, ['1', 'true', 'yes', 'y'], true);
+}
+
+function normalize_vault_item_payload(array $input): array
+{
+    return [
+        'site' => mb_substr(trim((string)($input['site'] ?? '')), 0, 191),
+        'item_type' => normalize_item_type($input['item_type'] ?? 'login'),
+        'username' => trim((string)($input['username'] ?? '')),
+        'password' => (string)($input['password'] ?? ''),
+        'notes' => trim((string)($input['notes'] ?? '')),
+        'folder' => mb_substr(trim((string)($input['folder'] ?? '')), 0, 120),
+        'is_favorite' => normalize_is_favorite_input($input['is_favorite'] ?? 0),
+        'tags' => normalize_tags_input($input['tags'] ?? []),
+    ];
+}
+
+function validate_vault_item_payload(array $item): ?string
+{
+    $site = trim((string)($item['site'] ?? ''));
+    $itemType = normalize_item_type($item['item_type'] ?? 'login');
+    $username = trim((string)($item['username'] ?? ''));
+    $password = (string)($item['password'] ?? '');
+    $notes = trim((string)($item['notes'] ?? ''));
+
+    if ($site === '') {
+        return 'Site is required';
+    }
+
+    if ($itemType === 'login' && ($username === '' || $password === '')) {
+        return 'Site, username, and password are required';
+    }
+
+    if ($itemType === 'secure_note' && $notes === '') {
+        return 'Secure note content is required';
+    }
+
+    return null;
+}

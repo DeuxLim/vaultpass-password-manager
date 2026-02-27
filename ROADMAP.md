@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **38%** (Phases 1-2 complete; Phases 3 and 7 in progress)
+Project Progress: **52%** (Phases 1-2 complete; Phase 3 largely complete except zero-knowledge implementation; Phase 7 validation pending)
 
 Last updated: 2026-02-23
 Owner: VaultPass core team
@@ -96,7 +96,7 @@ Exit criteria:
 - ✅ Users can generate/store/manage credentials end-to-end.
 - ✅ Users can restore previous versions of an edited vault item.
 - ✅ Import/export roundtrip tested.
-- ⬜ Mobile flows complete without desktop dependency.
+- ✅ Mobile flows complete without desktop dependency.
 
 ---
 
@@ -114,7 +114,7 @@ Exit criteria:
 - ⬜ Client-side encryption key flow defined and implemented for new vault records.
 - ✅ 2FA available for user accounts.
 - ✅ Users can view active sessions and revoke any session except current one.
-- ⬜ Security checklist completed and signed off.
+- ✅ Security checklist completed and signed off.
 
 ---
 

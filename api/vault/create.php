@@ -9,26 +9,20 @@ require_csrf();
 $userId = require_auth();
 $body = request_body();
 
-$site = trim((string)($body['site'] ?? ''));
-$itemType = normalize_item_type($body['item_type'] ?? 'login');
-$username = trim((string)($body['username'] ?? ''));
-$password = (string)($body['password'] ?? '');
-$notes = trim((string)($body['notes'] ?? ''));
-$folder = trim((string)($body['folder'] ?? ''));
-$isFavorite = ((int)($body['is_favorite'] ?? 0)) === 1;
-$tags = normalize_tags_input($body['tags'] ?? []);
-
-if ($site === '') {
-    json_response(['ok' => false, 'error' => 'Site is required'], 422);
+$payload = normalize_vault_item_payload($body);
+$validationError = validate_vault_item_payload($payload);
+if ($validationError !== null) {
+    json_response(['ok' => false, 'error' => $validationError], 422);
 }
 
-if ($itemType === 'login' && ($username === '' || $password === '')) {
-    json_response(['ok' => false, 'error' => 'Site, username, and password are required'], 422);
-}
-
-if ($itemType === 'secure_note' && $notes === '') {
-    json_response(['ok' => false, 'error' => 'Secure note content is required'], 422);
-}
+$site = $payload['site'];
+$itemType = $payload['item_type'];
+$username = $payload['username'];
+$password = $payload['password'];
+$notes = $payload['notes'];
+$folder = $payload['folder'];
+$isFavorite = $payload['is_favorite'];
+$tags = $payload['tags'];
 
 $pdo = db();
 $supportsItemType = db_column_exists('vault_items', 'item_type');
@@ -46,7 +40,7 @@ if ($supportsItemType) {
         'user_id' => $userId,
         'site' => $site,
         'item_type' => $itemType,
-        'folder' => mb_substr($folder, 0, 120),
+        'folder' => $folder,
         'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
         'is_favorite' => $isFavorite ? 1 : 0,
         'username_enc' => encrypt_value($username),
@@ -61,7 +55,7 @@ if ($supportsItemType) {
     $stmt->execute([
         'user_id' => $userId,
         'site' => $site,
-        'folder' => mb_substr($folder, 0, 120),
+        'folder' => $folder,
         'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
         'is_favorite' => $isFavorite ? 1 : 0,
         'username_enc' => encrypt_value($username),

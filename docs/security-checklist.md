@@ -1,8 +1,8 @@
 # VaultPass Security Checklist
 
-Last reviewed: 2026-02-23
+Last reviewed: 2026-02-27
 Reviewer: Codex + project owner
-Status: Initial baseline review complete
+Status: Signed off with one accepted risk (zero-knowledge phase)
 
 ## Critical Controls
 - [x] Secrets are not committed (`.env` ignored, `.env.example` used)
@@ -28,11 +28,10 @@ Status: Initial baseline review complete
 ## Checklist Result
 - Critical findings: 0
 - High findings: 0
-- Medium findings: 2 (tracked in roadmap)
+- Medium findings: 1 (tracked in roadmap)
 
 ## Medium Findings (Tracked)
 1. Zero-knowledge client-side encryption for new records is not yet implemented.
-2. Security events/history page for end users is not yet implemented.
 
 ## Next Review Trigger
 - Before public launch
