@@ -106,6 +106,13 @@ const emergencyReceivedEmpty = document.getElementById('emergencyReceivedEmpty')
 const emergencyReceivedList = document.getElementById('emergencyReceivedList');
 const emergencyRequestsEmpty = document.getElementById('emergencyRequestsEmpty');
 const emergencyRequestsList = document.getElementById('emergencyRequestsList');
+const emergencyApprovedEmpty = document.getElementById('emergencyApprovedEmpty');
+const emergencyApprovedList = document.getElementById('emergencyApprovedList');
+const emergencySnapshotModal = document.getElementById('emergencySnapshotModal');
+const emergencySnapshotMeta = document.getElementById('emergencySnapshotMeta');
+const emergencySnapshotError = document.getElementById('emergencySnapshotError');
+const emergencySnapshotList = document.getElementById('emergencySnapshotList');
+const emergencySnapshotCloseBtn = document.getElementById('emergencySnapshotCloseBtn');
 
 let items = [];
 let historyItemId = 0;
@@ -130,6 +137,7 @@ let emergencyAccessAvailable = false;
 let emergencyGrantsGiven = [];
 let emergencyGrantsReceived = [];
 let emergencyRequests = [];
+let emergencyApproved = [];
 
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
@@ -1679,12 +1687,13 @@ function pendingRequestForGrant(grantId) {
 }
 
 function renderEmergencyAccess() {
-  if (!emergencyGivenList || !emergencyReceivedList || !emergencyRequestsList) return;
+  if (!emergencyGivenList || !emergencyReceivedList || !emergencyRequestsList || !emergencyApprovedList) return;
 
   if (!emergencyAccessAvailable) {
     setEmergencyEmptyState(emergencyGivenEmpty, emergencyGivenList, false, 'Emergency access unavailable until migration 010 is applied.');
     setEmergencyEmptyState(emergencyReceivedEmpty, emergencyReceivedList, false, 'Emergency access unavailable until migration 010 is applied.');
     setEmergencyEmptyState(emergencyRequestsEmpty, emergencyRequestsList, false, 'Emergency access unavailable until migration 010 is applied.');
+    setEmergencyEmptyState(emergencyApprovedEmpty, emergencyApprovedList, false, 'Emergency access unavailable until migration 010 is applied.');
     return;
   }
 
@@ -1745,6 +1754,23 @@ function renderEmergencyAccess() {
   } else {
     setEmergencyEmptyState(emergencyRequestsEmpty, emergencyRequestsList, false, 'No emergency access requests.');
   }
+
+  if (emergencyApproved.length > 0) {
+    emergencyApprovedEmpty.style.display = 'none';
+    emergencyApprovedList.innerHTML = emergencyApproved.map((entry) => `
+      <article class="shared-vault-row">
+        <div>
+          <p class="shared-vault-name">${escapeHtml(entry.owner_name)} (${escapeHtml(entry.owner_email)})</p>
+          <p class="shared-vault-meta">Approved: ${escapeHtml(formatDateTime(entry.decided_at || entry.requested_at))} · Expires: ${escapeHtml(formatDateTime(entry.expires_at || 'not set'))}</p>
+        </div>
+        <div class="shared-vault-actions">
+          <button type="button" class="btn btn-primary" data-action="emergency-open-snapshot" data-request-id="${entry.request_id}">Open Snapshot</button>
+        </div>
+      </article>
+    `).join('');
+  } else {
+    setEmergencyEmptyState(emergencyApprovedEmpty, emergencyApprovedList, false, 'No active approved access windows.');
+  }
 }
 
 async function loadEmergencyAccess() {
@@ -1754,7 +1780,48 @@ async function loadEmergencyAccess() {
   emergencyGrantsGiven = Array.isArray(data?.grants_given) ? data.grants_given : [];
   emergencyGrantsReceived = Array.isArray(data?.grants_received) ? data.grants_received : [];
   emergencyRequests = Array.isArray(data?.requests) ? data.requests : [];
+  if (emergencyAccessAvailable) {
+    const approvedData = await requestApi('../api/emergency-access/approved.php', 'GET');
+    emergencyApproved = Array.isArray(approvedData?.approved_access) ? approvedData.approved_access : [];
+  } else {
+    emergencyApproved = [];
+  }
   renderEmergencyAccess();
+}
+
+async function openEmergencySnapshot(requestId) {
+  if (!emergencySnapshotModal || !emergencySnapshotList || !emergencySnapshotMeta || !emergencySnapshotError) return;
+  emergencySnapshotError.textContent = '';
+  emergencySnapshotMeta.textContent = 'Loading snapshot...';
+  emergencySnapshotList.innerHTML = '<p class="history-empty">Loading emergency snapshot...</p>';
+  emergencySnapshotModal.showModal();
+
+  try {
+    const data = await requestApi(`../api/emergency-access/items.php?request_id=${requestId}`, 'GET');
+    const request = data?.request || {};
+    const items = Array.isArray(data?.items) ? data.items : [];
+    emergencySnapshotMeta.textContent = `${request.owner_name || 'Owner'} · expires ${formatDateTime(request.expires_at || '')}`;
+
+    if (items.length === 0) {
+      emergencySnapshotList.innerHTML = '<p class="history-empty">No vault items available.</p>';
+      return;
+    }
+
+    emergencySnapshotList.innerHTML = items.map((item) => `
+      <article class="history-entry">
+        <div class="history-entry-head">
+          <p class="history-entry-time">${escapeHtml(item.site || 'Untitled')}</p>
+          <p class="history-entry-source">${escapeHtml(formatItemType(item.item_type))}</p>
+        </div>
+        <p class="history-entry-meta">Username: ${escapeHtml(item.item_type === 'secure_note' ? '—' : item.username || '')}</p>
+        <p class="history-entry-meta">Password: ${escapeHtml(item.item_type === 'secure_note' ? '—' : item.password || '')}</p>
+        <p class="history-entry-meta">Notes: ${escapeHtml(item.notes || '')}</p>
+      </article>
+    `).join('');
+  } catch (error) {
+    emergencySnapshotError.textContent = error.message || 'Unable to load emergency snapshot.';
+    emergencySnapshotList.innerHTML = '';
+  }
 }
 
 async function createEmergencyGrant() {
@@ -1823,6 +1890,9 @@ cancelBtn?.addEventListener('click', closeModal);
 historyCloseBtn?.addEventListener('click', closeHistoryModal);
 sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
 backupCloseBtn?.addEventListener('click', closeBackupModal);
+emergencySnapshotCloseBtn?.addEventListener('click', () => {
+  emergencySnapshotModal?.close();
+});
 searchInput?.addEventListener('input', renderTable);
 favoriteFilter?.addEventListener('change', renderTable);
 folderFilter?.addEventListener('change', renderTable);
@@ -2379,6 +2449,23 @@ emergencyRequestsList?.addEventListener('click', async (e) => {
     }
   } catch (error) {
     if (emergencyError) emergencyError.textContent = error.message || 'Unable to update emergency request.';
+  }
+});
+
+emergencyApprovedList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+  if (button.dataset.action !== 'emergency-open-snapshot') return;
+
+  const requestId = Number(button.dataset.requestId || 0);
+  if (!requestId) return;
+
+  try {
+    await openEmergencySnapshot(requestId);
+  } catch (error) {
+    if (emergencyError) emergencyError.textContent = error.message || 'Unable to open emergency snapshot.';
   }
 });
 

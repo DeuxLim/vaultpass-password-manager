@@ -143,6 +143,12 @@
           <p id="emergencyRequestsEmpty" class="empty-state">No emergency access requests.</p>
           <div id="emergencyRequestsList" class="shared-vaults-list"></div>
         </section>
+
+        <section class="shared-vault-subpanel">
+          <h3>Approved Access Windows</h3>
+          <p id="emergencyApprovedEmpty" class="empty-state">No active approved access windows.</p>
+          <div id="emergencyApprovedList" class="shared-vaults-list"></div>
+        </section>
       </section>
 
       <section class="filters-panel" aria-label="Vault filters">
@@ -369,6 +375,18 @@
 
       <menu>
         <button type="button" id="backupCloseBtn" class="btn btn-ghost">Close</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="emergencySnapshotModal" class="vault-modal" aria-labelledby="emergencySnapshotTitle">
+    <form method="dialog">
+      <h2 id="emergencySnapshotTitle">Emergency Snapshot</h2>
+      <p id="emergencySnapshotMeta" class="history-item-label"></p>
+      <p id="emergencySnapshotError" class="form-error" role="alert" aria-live="assertive"></p>
+      <div id="emergencySnapshotList" class="history-list"></div>
+      <menu>
+        <button type="button" id="emergencySnapshotCloseBtn" class="btn btn-ghost">Close</button>
       </menu>
     </form>
   </dialog>

@@ -77,6 +77,8 @@ for path in \
   /api/auth/key-material.php \
   /api/auth/security-events.php \
   /api/emergency-access/list.php \
+  /api/emergency-access/approved.php \
+  /api/emergency-access/items.php?request_id=1 \
   /api/shared-vault/list.php \
   /api/shared-vault/invitations.php \
   /api/shared-vault/members.php?vault_id=1 \
