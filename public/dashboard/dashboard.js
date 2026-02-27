@@ -1419,8 +1419,10 @@ function renderSharedMembers() {
   sharedMemberList.innerHTML = sharedMembers.map((member) => {
     const role = String(member.role || '');
     const canEditRole = isOwner && role !== 'owner';
+    const isAccepted = String(member.invitation_status || '') === 'accepted';
     const isCurrentUser = Number(member.user_id) === currentUserId;
     const canRemove = isOwner ? role !== 'owner' : (isCurrentUser && role !== 'owner');
+    const canTransferOwner = isOwner && !isCurrentUser && role !== 'owner' && isAccepted;
     const roleControl = canEditRole
       ? `
           <select data-action="shared-member-role-select" data-user-id="${member.user_id}">
@@ -1440,6 +1442,7 @@ function renderSharedMembers() {
         </div>
         <div class="shared-vault-actions">
           ${roleControl}
+          ${canTransferOwner ? `<button type="button" class="btn btn-primary" data-action="shared-member-transfer-owner" data-user-id="${member.user_id}">Transfer Ownership</button>` : ''}
           ${canRemove ? `<button type="button" class="btn btn-ghost danger" data-action="shared-member-remove" data-user-id="${member.user_id}">${removeLabel}</button>` : ''}
         </div>
       </article>
@@ -1574,6 +1577,25 @@ async function removeSharedMember(userId) {
   await loadSharedMembers();
   await loadSharedVaults();
   showToast('Member removed.');
+}
+
+async function transferSharedVaultOwnership(newOwnerUserId) {
+  if (!sharedMemberError) return;
+  sharedMemberError.textContent = '';
+  const vaultId = Number(sharedVaultManageSelect?.value || selectedSharedVaultId || 0);
+  if (!vaultId) {
+    sharedMemberError.textContent = 'Select a shared vault first.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/transfer-ownership.php', 'POST', {
+    vault_id: vaultId,
+    new_owner_user_id: newOwnerUserId,
+  });
+  await loadSharedVaults();
+  await loadSharedMembers();
+  showToast('Ownership transferred.');
 }
 
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
@@ -2069,6 +2091,13 @@ sharedMemberList?.addEventListener('click', async (e) => {
       const confirmed = window.confirm(isSelf ? 'Leave this shared vault?' : 'Remove this member from shared vault?');
       if (!confirmed) return;
       await removeSharedMember(userId);
+      return;
+    }
+
+    if (button.dataset.action === 'shared-member-transfer-owner') {
+      const confirmed = window.confirm('Transfer shared vault ownership to this member? You will become editor.');
+      if (!confirmed) return;
+      await transferSharedVaultOwnership(userId);
     }
   } catch (error) {
     if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to update member.';

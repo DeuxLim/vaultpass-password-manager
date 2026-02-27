@@ -97,6 +97,7 @@ for path in \
   /api/shared-vault/invite.php \
   /api/shared-vault/respond-invite.php \
   /api/shared-vault/update-member-role.php \
+  /api/shared-vault/transfer-ownership.php \
   /api/shared-vault/remove-member.php \
   /api/vault/create.php \
   /api/vault/update.php \
