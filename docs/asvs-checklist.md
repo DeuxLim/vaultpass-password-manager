@@ -8,7 +8,7 @@ Scope: Practical subset for current architecture
 - [x] Optional MFA (TOTP + recovery codes)
 - [x] Rate limiting for login/register/2FA
 - [x] Session revocation and active session management
-- [ ] Account lockout policy with admin-visible unlock flow (temporary lockout enforced; admin unlock flow pending)
+- [x] Account lockout policy with admin-visible unlock flow (`ACCOUNT_LOCKOUT_*` + `scripts/unlock-account.sh`)
 
 ## V3 Session Management
 - [x] Session cookie `HttpOnly`

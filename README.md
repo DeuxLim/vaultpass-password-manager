@@ -79,6 +79,12 @@ BACKUP_KDF_ITERATIONS=210000
 `SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT` are in seconds.
 `ACCOUNT_LOCKOUT_WINDOW`, `ACCOUNT_LOCKOUT_MAX`, and `ACCOUNT_LOCKOUT_DURATION` control temporary account lockouts after repeated failed logins.
 
+If you need to clear a lockout manually (admin operation), run:
+
+```bash
+./scripts/unlock-account.sh user@example.com
+```
+
 `APP_KEY` must be a long random value.
 
 For production deployments:
