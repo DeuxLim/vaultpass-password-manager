@@ -634,7 +634,28 @@ button:focus-visible,
     grid-template-columns: 1fr;
     display: grid;
   }
-  .vault-modal form { padding: 14px; }
+  .vault-modal {
+    width: 100vw;
+    max-width: none;
+    margin: 0;
+    border-radius: 18px 18px 0 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    max-height: min(86vh, 760px);
+    overflow: hidden;
+  }
+  .vault-modal form {
+    padding: 14px;
+    max-height: min(86vh, 760px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+  }
   .vault-modal menu { display: grid; grid-template-columns: 1fr 1fr; }
   .history-entry-head,
   .session-entry-head,

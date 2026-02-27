@@ -1,5 +1,7 @@
 # VaultPass Product Roadmap
 
+Project Progress: **38%** (Phases 1-2 complete; Phases 3 and 7 in progress)
+
 Last updated: 2026-02-23
 Owner: VaultPass core team
 Status: Active working plan
