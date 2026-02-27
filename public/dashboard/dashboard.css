@@ -354,6 +354,37 @@ h1 {
   font-size: 12px;
 }
 
+.status-pill {
+  display: inline-block;
+  border-radius: 999px;
+  padding: 1px 8px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 700;
+}
+
+.status-pill.is-pending {
+  color: var(--warning);
+  border-color: color-mix(in srgb, var(--warning) 55%, var(--line));
+  background: color-mix(in srgb, var(--warning) 12%, var(--surface));
+}
+
+.status-pill.is-approved,
+.status-pill.is-enabled {
+  color: var(--success);
+  border-color: color-mix(in srgb, var(--success) 55%, var(--line));
+  background: color-mix(in srgb, var(--success) 12%, var(--surface));
+}
+
+.status-pill.is-denied,
+.status-pill.is-disabled {
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 55%, var(--line));
+  background: color-mix(in srgb, var(--danger) 12%, var(--surface));
+}
+
 .table-card {
   overflow: hidden;
   min-height: 280px;

@@ -1664,6 +1664,19 @@ function setEmergencyEmptyState(element, listElement, hasItems, emptyText) {
   element.style.display = 'block';
 }
 
+function emergencyStatusBadge(status) {
+  const value = String(status || '').toLowerCase();
+  if (value === 'approved') return '<span class="status-pill is-approved">approved</span>';
+  if (value === 'denied') return '<span class="status-pill is-denied">denied</span>';
+  return '<span class="status-pill is-pending">pending</span>';
+}
+
+function pendingRequestForGrant(grantId) {
+  const id = Number(grantId || 0);
+  if (!id) return false;
+  return emergencyRequests.some((request) => Number(request.grant_id || 0) === id && String(request.status || '').toLowerCase() === 'pending');
+}
+
 function renderEmergencyAccess() {
   if (!emergencyGivenList || !emergencyReceivedList || !emergencyRequestsList) return;
 
@@ -1680,7 +1693,7 @@ function renderEmergencyAccess() {
       <article class="shared-vault-row">
         <div>
           <p class="shared-vault-name">${escapeHtml(grant.grantee_name)} (${escapeHtml(grant.grantee_email)})</p>
-          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? 'Enabled' : 'Revoked'}</p>
+          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? '<span class="status-pill is-enabled">enabled</span>' : '<span class="status-pill is-disabled">revoked</span>'}</p>
         </div>
         <div class="shared-vault-actions">
           ${grant.is_enabled ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-revoke-grant" data-grant-id="${grant.id}">Revoke</button>` : ''}
@@ -1697,10 +1710,11 @@ function renderEmergencyAccess() {
       <article class="shared-vault-row">
         <div>
           <p class="shared-vault-name">${escapeHtml(grant.owner_name)} (${escapeHtml(grant.owner_email)})</p>
-          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? 'Enabled' : 'Disabled'}</p>
+          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? '<span class="status-pill is-enabled">enabled</span>' : '<span class="status-pill is-disabled">disabled</span>'}</p>
         </div>
         <div class="shared-vault-actions">
-          ${grant.is_enabled ? `<button type="button" class="btn btn-primary" data-action="emergency-request-access" data-grant-id="${grant.id}">Request Access</button>` : ''}
+          ${grant.is_enabled && !pendingRequestForGrant(grant.id) ? `<button type="button" class="btn btn-primary" data-action="emergency-request-access" data-grant-id="${grant.id}">Request Access</button>` : ''}
+          ${grant.is_enabled && pendingRequestForGrant(grant.id) ? '<button type="button" class="btn btn-ghost" disabled>Pending Request</button>' : ''}
         </div>
       </article>
     `).join('');
@@ -1714,7 +1728,11 @@ function renderEmergencyAccess() {
       <article class="shared-vault-row">
         <div>
           <p class="shared-vault-name">${escapeHtml(request.owner_name)} ⇄ ${escapeHtml(request.requester_name)}</p>
-          <p class="shared-vault-meta">Status: ${escapeHtml(request.status)} · Requested: ${escapeHtml(formatDateTime(request.requested_at))}</p>
+          <p class="shared-vault-meta">
+            Status: ${emergencyStatusBadge(request.status)} ·
+            Requested: ${escapeHtml(formatDateTime(request.requested_at))}
+            ${request.expires_at ? ` · Expires: ${escapeHtml(formatDateTime(request.expires_at))}` : ''}
+          </p>
         </div>
         <div class="shared-vault-actions">
           ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-primary" data-action="emergency-approve-request" data-request-id="${request.id}">Approve</button>` : ''}
@@ -2294,7 +2312,7 @@ emergencyGivenList?.addEventListener('click', async (e) => {
   if (!grantId) return;
 
   try {
-    const confirmed = window.confirm('Revoke this emergency access grant?');
+    const confirmed = window.confirm('Revoke this emergency access grant? Existing pending requests will no longer be actionable.');
     if (!confirmed) return;
     await revokeEmergencyGrant(grantId);
   } catch (error) {
@@ -2313,7 +2331,7 @@ emergencyReceivedList?.addEventListener('click', async (e) => {
   if (!grantId) return;
 
   try {
-    const confirmed = window.confirm('Request emergency access now?');
+    const confirmed = window.confirm('Request emergency access now? The owner will need to approve this request.');
     if (!confirmed) return;
     await requestEmergencyAccess(grantId);
   } catch (error) {
@@ -2332,13 +2350,13 @@ emergencyRequestsList?.addEventListener('click', async (e) => {
 
   try {
     if (button.dataset.action === 'emergency-approve-request') {
-      const confirmed = window.confirm('Approve this emergency access request?');
+      const confirmed = window.confirm('Approve this emergency access request? This will start the configured wait-period timer.');
       if (!confirmed) return;
       await decideEmergencyRequest(requestId, 'approve');
       return;
     }
     if (button.dataset.action === 'emergency-deny-request') {
-      const confirmed = window.confirm('Deny this emergency access request?');
+      const confirmed = window.confirm('Deny this emergency access request? The requester will need to submit a new request.');
       if (!confirmed) return;
       await decideEmergencyRequest(requestId, 'deny');
     }
