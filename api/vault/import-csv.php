@@ -60,8 +60,7 @@ try {
         }
 
         $site = trim((string)($row['site'] ?? ''));
-        $itemType = strtolower(trim((string)($row['item_type'] ?? 'login')));
-        $itemType = $itemType === 'secure_note' ? 'secure_note' : 'login';
+        $itemType = normalize_item_type($row['item_type'] ?? 'login');
         $folder = trim((string)($row['folder'] ?? ''));
         $isFavoriteRaw = strtolower(trim((string)($row['is_favorite'] ?? '0')));
         $isFavorite = in_array($isFavoriteRaw, ['1', 'true', 'yes', 'y'], true);
@@ -73,29 +72,7 @@ try {
         if (is_string($tagsInput)) {
             $tagsInput = array_map('trim', explode(',', $tagsInput));
         }
-        if (!is_array($tagsInput)) {
-            $tagsInput = [];
-        }
-
-        $normalizedTags = [];
-        foreach ($tagsInput as $tag) {
-            if (!is_string($tag)) {
-                continue;
-            }
-
-            $value = trim($tag);
-            if ($value === '') {
-                continue;
-            }
-
-            $value = mb_substr($value, 0, 40);
-            $normalizedTags[$value] = true;
-
-            if (count($normalizedTags) >= 20) {
-                break;
-            }
-        }
-        $tags = array_keys($normalizedTags);
+        $tags = normalize_tags_input($tagsInput);
 
         if ($site === '') {
             $errors[] = ['row' => $index + 1, 'error' => 'Site is required'];

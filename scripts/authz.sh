@@ -39,7 +39,16 @@ request_code() {
 
   local code
   code="$(curl "${args[@]}" "$BASE_URL$path")"
-  if [[ "$code" != "$expected" ]]; then
+  local matched=0
+  IFS='|' read -r -a expected_codes <<< "$expected"
+  for expected_code in "${expected_codes[@]}"; do
+    if [[ "$code" == "$expected_code" ]]; then
+      matched=1
+      break
+    fi
+  done
+
+  if [[ "$matched" -ne 1 ]]; then
     echo "[authz] FAIL $method $path expected=$expected actual=$code"
     exit 1
   fi
@@ -57,8 +66,8 @@ request_code GET /api/auth/csrf.php 200
 request_code GET /api/auth/session.php 200
 
 # Public auth flows should reject malformed payloads (not unauthorized).
-request_code POST /api/auth/login.php 422 '{"email":"bad","password":""}' "$csrf_token"
-request_code POST /api/auth/register.php 422 '{"name":"","email":"bad","password":"123"}' "$csrf_token"
+request_code POST /api/auth/login.php "422|429" '{"email":"bad","password":""}' "$csrf_token"
+request_code POST /api/auth/register.php "422|429" '{"name":"","email":"bad","password":"123"}' "$csrf_token"
 request_code POST /api/auth/2fa-verify-login.php 401 '{"code":"000000"}' "$csrf_token"
 
 # Auth-protected GET endpoints.

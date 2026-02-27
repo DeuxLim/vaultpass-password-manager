@@ -70,38 +70,13 @@ try {
         }
 
         $site = trim((string)($item['site'] ?? ''));
-        $itemType = strtolower(trim((string)($item['item_type'] ?? 'login')));
-        $itemType = $itemType === 'secure_note' ? 'secure_note' : 'login';
+        $itemType = normalize_item_type($item['item_type'] ?? 'login');
         $folder = trim((string)($item['folder'] ?? ''));
         $isFavorite = ((int)($item['is_favorite'] ?? 0)) === 1;
-        $tagsInput = $item['tags'] ?? [];
         $username = trim((string)($item['username'] ?? ''));
         $password = (string)($item['password'] ?? '');
         $notes = trim((string)($item['notes'] ?? ''));
-
-        if (!is_array($tagsInput)) {
-            $tagsInput = [];
-        }
-
-        $normalizedTags = [];
-        foreach ($tagsInput as $tag) {
-            if (!is_string($tag)) {
-                continue;
-            }
-
-            $value = trim($tag);
-            if ($value === '') {
-                continue;
-            }
-
-            $value = mb_substr($value, 0, 40);
-            $normalizedTags[$value] = true;
-
-            if (count($normalizedTags) >= 20) {
-                break;
-            }
-        }
-        $tags = array_keys($normalizedTags);
+        $tags = normalize_tags_input($item['tags'] ?? []);
 
         if ($site === '') {
             $errors[] = ['row' => $index + 1, 'error' => 'Site is required'];

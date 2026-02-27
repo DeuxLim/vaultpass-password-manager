@@ -11,39 +11,13 @@ $body = request_body();
 
 $id = (int)($body['id'] ?? 0);
 $site = trim((string)($body['site'] ?? ''));
-$itemType = strtolower(trim((string)($body['item_type'] ?? 'login')));
-$itemType = $itemType === 'secure_note' ? 'secure_note' : 'login';
+$itemType = normalize_item_type($body['item_type'] ?? 'login');
 $username = trim((string)($body['username'] ?? ''));
 $password = (string)($body['password'] ?? '');
 $notes = trim((string)($body['notes'] ?? ''));
 $folder = trim((string)($body['folder'] ?? ''));
 $isFavorite = ((int)($body['is_favorite'] ?? 0)) === 1;
-$tagsInput = $body['tags'] ?? [];
-
-if (!is_array($tagsInput)) {
-    $tagsInput = [];
-}
-
-$normalizedTags = [];
-foreach ($tagsInput as $tag) {
-    if (!is_string($tag)) {
-        continue;
-    }
-
-    $value = trim($tag);
-    if ($value === '') {
-        continue;
-    }
-
-    $value = mb_substr($value, 0, 40);
-    $normalizedTags[$value] = true;
-
-    if (count($normalizedTags) >= 20) {
-        break;
-    }
-}
-
-$tags = array_keys($normalizedTags);
+$tags = normalize_tags_input($body['tags'] ?? []);
 
 if ($id <= 0 || $site === '') {
     json_response(['ok' => false, 'error' => 'Invalid request'], 422);

@@ -13,6 +13,7 @@ require_once __DIR__ . '/crypto.php';
 require_once __DIR__ . '/backup.php';
 require_once __DIR__ . '/audit.php';
 require_once __DIR__ . '/two_factor.php';
+require_once __DIR__ . '/validators.php';
 
 load_dotenv();
 start_app_session();
