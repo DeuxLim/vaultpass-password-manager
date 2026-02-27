@@ -85,6 +85,16 @@ const sharedVaultNameInput = document.getElementById('sharedVaultNameInput');
 const sharedVaultError = document.getElementById('sharedVaultError');
 const sharedVaultList = document.getElementById('sharedVaultList');
 const sharedVaultEmpty = document.getElementById('sharedVaultEmpty');
+const sharedInviteList = document.getElementById('sharedInviteList');
+const sharedInviteEmpty = document.getElementById('sharedInviteEmpty');
+const sharedVaultManageSelect = document.getElementById('sharedVaultManageSelect');
+const loadSharedMembersBtn = document.getElementById('loadSharedMembersBtn');
+const sharedInviteForm = document.getElementById('sharedInviteForm');
+const sharedInviteEmailInput = document.getElementById('sharedInviteEmailInput');
+const sharedInviteRoleSelect = document.getElementById('sharedInviteRoleSelect');
+const sharedMemberError = document.getElementById('sharedMemberError');
+const sharedMemberEmpty = document.getElementById('sharedMemberEmpty');
+const sharedMemberList = document.getElementById('sharedMemberList');
 
 let items = [];
 let historyItemId = 0;
@@ -101,6 +111,10 @@ let zkPassphrase = '';
 let zkKeyMaterialStatus = { loaded: false, available: false, has: false };
 let sharedVaults = [];
 let sharedVaultsAvailable = false;
+let sharedInvitations = [];
+let sharedMembers = [];
+let selectedSharedVaultId = 0;
+let currentUserId = 0;
 
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
@@ -1215,6 +1229,7 @@ async function loadSession() {
     return false;
   }
 
+  currentUserId = Number(data?.user?.id || 0);
   welcomeText.textContent = `Welcome, ${data.user?.name || 'User'}`;
   return true;
 }
@@ -1257,6 +1272,116 @@ function renderSharedVaults() {
   `).join('');
 }
 
+function renderSharedVaultSelector() {
+  if (!sharedVaultManageSelect) return;
+
+  if (!sharedVaultsAvailable || sharedVaults.length === 0) {
+    sharedVaultManageSelect.innerHTML = '<option value="">No shared vaults</option>';
+    selectedSharedVaultId = 0;
+    return;
+  }
+
+  const previous = Number(sharedVaultManageSelect.value || selectedSharedVaultId || 0);
+  sharedVaultManageSelect.innerHTML = sharedVaults
+    .map((vault) => `<option value="${vault.id}">${escapeHtml(vault.name)} (${escapeHtml(vault.role)})</option>`)
+    .join('');
+
+  const hasPrevious = sharedVaults.some((vault) => Number(vault.id) === previous);
+  selectedSharedVaultId = hasPrevious ? previous : Number(sharedVaults[0].id || 0);
+  sharedVaultManageSelect.value = String(selectedSharedVaultId || '');
+
+  const selected = sharedVaults.find((vault) => Number(vault.id) === selectedSharedVaultId);
+  const canInvite = ['owner', 'editor'].includes(String(selected?.role || ''));
+  if (sharedInviteEmailInput) sharedInviteEmailInput.disabled = !canInvite;
+  if (sharedInviteRoleSelect) sharedInviteRoleSelect.disabled = !canInvite;
+  const inviteButton = sharedInviteForm?.querySelector('button[type="submit"]');
+  if (inviteButton instanceof HTMLButtonElement) inviteButton.disabled = !canInvite;
+}
+
+function renderSharedInvitations() {
+  if (!sharedInviteList || !sharedInviteEmpty) return;
+
+  if (!sharedVaultsAvailable) {
+    sharedInviteList.innerHTML = '';
+    sharedInviteEmpty.textContent = 'Shared vault invitations unavailable until migration 008 is applied.';
+    sharedInviteEmpty.style.display = 'block';
+    return;
+  }
+
+  if (sharedInvitations.length === 0) {
+    sharedInviteList.innerHTML = '';
+    sharedInviteEmpty.textContent = 'No pending shared-vault invitations.';
+    sharedInviteEmpty.style.display = 'block';
+    return;
+  }
+
+  sharedInviteEmpty.style.display = 'none';
+  sharedInviteList.innerHTML = sharedInvitations.map((invite) => `
+    <article class="shared-vault-row">
+      <div>
+        <p class="shared-vault-name">${escapeHtml(invite.vault_name)}</p>
+        <p class="shared-vault-meta">Role: ${escapeHtml(invite.role)} · Invited by: ${escapeHtml(invite.invited_by_email || invite.invited_by_name || 'Unknown')}</p>
+      </div>
+      <div class="shared-vault-actions">
+        <button type="button" class="btn btn-primary" data-action="shared-invite-accept" data-membership-id="${invite.membership_id}">Accept</button>
+        <button type="button" class="btn btn-ghost danger" data-action="shared-invite-reject" data-membership-id="${invite.membership_id}">Reject</button>
+      </div>
+    </article>
+  `).join('');
+}
+
+function renderSharedMembers() {
+  if (!sharedMemberList || !sharedMemberEmpty) return;
+
+  if (!selectedSharedVaultId) {
+    sharedMemberList.innerHTML = '';
+    sharedMemberEmpty.textContent = 'Load a shared vault to view members.';
+    sharedMemberEmpty.style.display = 'block';
+    return;
+  }
+
+  if (sharedMembers.length === 0) {
+    sharedMemberList.innerHTML = '';
+    sharedMemberEmpty.textContent = 'No members found for this shared vault.';
+    sharedMemberEmpty.style.display = 'block';
+    return;
+  }
+
+  const currentVault = sharedVaults.find((vault) => Number(vault.id) === Number(selectedSharedVaultId));
+  const isOwner = String(currentVault?.role || '') === 'owner';
+
+  sharedMemberEmpty.style.display = 'none';
+  sharedMemberList.innerHTML = sharedMembers.map((member) => {
+    const role = String(member.role || '');
+    const canEditRole = isOwner && role !== 'owner';
+    const isCurrentUser = Number(member.user_id) === currentUserId;
+    const canRemove = isOwner ? role !== 'owner' : (isCurrentUser && role !== 'owner');
+    const roleControl = canEditRole
+      ? `
+          <select data-action="shared-member-role-select" data-user-id="${member.user_id}">
+            <option value="viewer" ${role === 'viewer' ? 'selected' : ''}>viewer</option>
+            <option value="editor" ${role === 'editor' ? 'selected' : ''}>editor</option>
+          </select>
+          <button type="button" class="btn btn-ghost" data-action="shared-member-update-role" data-user-id="${member.user_id}">Update Role</button>
+        `
+      : '<p class="shared-vault-meta">Owner</p>';
+    const removeLabel = isCurrentUser ? 'Leave' : 'Remove';
+
+    return `
+      <article class="shared-vault-row">
+        <div>
+          <p class="shared-vault-name">${escapeHtml(member.name)} (${escapeHtml(member.email)})</p>
+          <p class="shared-vault-meta">Role: ${escapeHtml(role)} · Status: ${escapeHtml(member.invitation_status)}</p>
+        </div>
+        <div class="shared-vault-actions">
+          ${roleControl}
+          ${canRemove ? `<button type="button" class="btn btn-ghost danger" data-action="shared-member-remove" data-user-id="${member.user_id}">${removeLabel}</button>` : ''}
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
 async function loadSharedVaults() {
   if (sharedVaultError) sharedVaultError.textContent = '';
   if (!sharedVaultList || !sharedVaultEmpty) return;
@@ -1265,6 +1390,7 @@ async function loadSharedVaults() {
   sharedVaultsAvailable = Boolean(data?.available);
   sharedVaults = Array.isArray(data?.shared_vaults) ? data.shared_vaults : [];
   renderSharedVaults();
+  renderSharedVaultSelector();
 }
 
 async function createSharedVault() {
@@ -1279,7 +1405,108 @@ async function createSharedVault() {
   await requestApi('../api/shared-vault/create.php', 'POST', { name });
   if (sharedVaultNameInput) sharedVaultNameInput.value = '';
   await loadSharedVaults();
+  await loadSharedMembers();
   showToast('Shared vault created.');
+}
+
+async function loadSharedInvitations() {
+  const data = await requestApi('../api/shared-vault/invitations.php', 'GET');
+  sharedInvitations = Array.isArray(data?.invitations) ? data.invitations : [];
+  renderSharedInvitations();
+}
+
+async function respondSharedInvitation(membershipId, action) {
+  await csrfReady;
+  await requestApi('../api/shared-vault/respond-invite.php', 'POST', {
+    membership_id: membershipId,
+    action,
+  });
+  await loadSharedInvitations();
+  await loadSharedVaults();
+  showToast(action === 'accept' ? 'Invitation accepted.' : 'Invitation rejected.');
+}
+
+async function loadSharedMembers() {
+  if (!sharedMemberError) return;
+  sharedMemberError.textContent = '';
+  selectedSharedVaultId = Number(sharedVaultManageSelect?.value || selectedSharedVaultId || 0);
+  if (!selectedSharedVaultId) {
+    sharedMembers = [];
+    renderSharedMembers();
+    return;
+  }
+
+  const data = await requestApi(`../api/shared-vault/members.php?vault_id=${selectedSharedVaultId}`, 'GET');
+  sharedMembers = Array.isArray(data?.members) ? data.members : [];
+  renderSharedMembers();
+}
+
+async function inviteSharedMember() {
+  if (!sharedMemberError) return;
+  sharedMemberError.textContent = '';
+  const vaultId = Number(sharedVaultManageSelect?.value || selectedSharedVaultId || 0);
+  const email = String(sharedInviteEmailInput?.value || '').trim();
+  const role = String(sharedInviteRoleSelect?.value || 'viewer').trim();
+
+  if (!vaultId) {
+    sharedMemberError.textContent = 'Select a shared vault first.';
+    return;
+  }
+  if (!email) {
+    sharedMemberError.textContent = 'Invite email is required.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/invite.php', 'POST', { vault_id: vaultId, email, role });
+  if (sharedInviteEmailInput) sharedInviteEmailInput.value = '';
+  await loadSharedMembers();
+  showToast('Invitation sent.');
+}
+
+function findSelectedRoleForMember(userId) {
+  const selector = sharedMemberList?.querySelector(`select[data-action="shared-member-role-select"][data-user-id="${userId}"]`);
+  if (!(selector instanceof HTMLSelectElement)) return '';
+  return String(selector.value || '').trim();
+}
+
+async function updateSharedMemberRole(userId) {
+  if (!sharedMemberError) return;
+  sharedMemberError.textContent = '';
+  const vaultId = Number(sharedVaultManageSelect?.value || selectedSharedVaultId || 0);
+  const role = findSelectedRoleForMember(userId);
+  if (!vaultId || !role) {
+    sharedMemberError.textContent = 'Vault and role are required.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/update-member-role.php', 'POST', {
+    vault_id: vaultId,
+    member_user_id: userId,
+    role,
+  });
+  await loadSharedMembers();
+  showToast('Member role updated.');
+}
+
+async function removeSharedMember(userId) {
+  if (!sharedMemberError) return;
+  sharedMemberError.textContent = '';
+  const vaultId = Number(sharedVaultManageSelect?.value || selectedSharedVaultId || 0);
+  if (!vaultId) {
+    sharedMemberError.textContent = 'Select a shared vault first.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/shared-vault/remove-member.php', 'POST', {
+    vault_id: vaultId,
+    member_user_id: userId,
+  });
+  await loadSharedMembers();
+  await loadSharedVaults();
+  showToast('Member removed.');
 }
 
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
@@ -1387,6 +1614,29 @@ sharedVaultForm?.addEventListener('submit', async (e) => {
     await createSharedVault();
   } catch (error) {
     if (sharedVaultError) sharedVaultError.textContent = error.message || 'Unable to create shared vault.';
+  }
+});
+sharedInviteForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await inviteSharedMember();
+  } catch (error) {
+    if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to invite member.';
+  }
+});
+loadSharedMembersBtn?.addEventListener('click', async () => {
+  try {
+    await loadSharedMembers();
+  } catch (error) {
+    if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to load members.';
+  }
+});
+sharedVaultManageSelect?.addEventListener('change', async () => {
+  try {
+    selectedSharedVaultId = Number(sharedVaultManageSelect.value || 0);
+    await loadSharedMembers();
+  } catch (error) {
+    if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to load members.';
   }
 });
 refreshEventsBtn?.addEventListener('click', async () => {
@@ -1699,6 +1949,52 @@ sessionsList?.addEventListener('click', async (e) => {
   }
 });
 
+sharedInviteList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+
+  const membershipId = Number(button.dataset.membershipId || 0);
+  if (!membershipId) return;
+
+  try {
+    if (button.dataset.action === 'shared-invite-accept') {
+      await respondSharedInvitation(membershipId, 'accept');
+    } else if (button.dataset.action === 'shared-invite-reject') {
+      await respondSharedInvitation(membershipId, 'reject');
+    }
+  } catch (error) {
+    if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to update invitation.';
+  }
+});
+
+sharedMemberList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+
+  const userId = Number(button.dataset.userId || 0);
+  if (!userId) return;
+
+  try {
+    if (button.dataset.action === 'shared-member-update-role') {
+      await updateSharedMemberRole(userId);
+      return;
+    }
+
+    if (button.dataset.action === 'shared-member-remove') {
+      const isSelf = userId === currentUserId;
+      const confirmed = window.confirm(isSelf ? 'Leave this shared vault?' : 'Remove this member from shared vault?');
+      if (!confirmed) return;
+      await removeSharedMember(userId);
+    }
+  } catch (error) {
+    if (sharedMemberError) sharedMemberError.textContent = error.message || 'Unable to update member.';
+  }
+});
+
 (async function init() {
   try {
     initTheme();
@@ -1706,6 +2002,8 @@ sessionsList?.addEventListener('click', async (e) => {
     if (!ok) return;
     await loadItems();
     await loadSharedVaults();
+    await loadSharedInvitations();
+    await loadSharedMembers();
   } catch (_error) {
     showToast('Unable to load dashboard data.', 'error');
   }

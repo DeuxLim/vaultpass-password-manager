@@ -74,6 +74,34 @@
         <p id="sharedVaultError" class="form-error" role="alert" aria-live="assertive"></p>
         <p id="sharedVaultEmpty" class="empty-state">No shared vaults yet.</p>
         <div id="sharedVaultList" class="shared-vaults-list"></div>
+
+        <section class="shared-vault-subpanel">
+          <h3>Pending Invitations</h3>
+          <p id="sharedInviteEmpty" class="empty-state">No pending shared-vault invitations.</p>
+          <div id="sharedInviteList" class="shared-vaults-list"></div>
+        </section>
+
+        <section class="shared-vault-subpanel">
+          <h3>Manage Members</h3>
+          <div class="shared-vault-manage-controls">
+            <label for="sharedVaultManageSelect" class="sr-only">Select shared vault</label>
+            <select id="sharedVaultManageSelect"></select>
+            <button type="button" id="loadSharedMembersBtn" class="btn btn-ghost">Load Members</button>
+          </div>
+          <form id="sharedInviteForm" class="shared-vaults-form">
+            <label for="sharedInviteEmailInput" class="sr-only">Invite email</label>
+            <input id="sharedInviteEmailInput" type="email" placeholder="user@example.com">
+            <label for="sharedInviteRoleSelect" class="sr-only">Invite role</label>
+            <select id="sharedInviteRoleSelect">
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Invite Member</button>
+          </form>
+          <p id="sharedMemberError" class="form-error" role="alert" aria-live="assertive"></p>
+          <p id="sharedMemberEmpty" class="empty-state">Load a shared vault to view members.</p>
+          <div id="sharedMemberList" class="shared-vaults-list"></div>
+        </section>
       </section>
 
       <section class="filters-panel" aria-label="Vault filters">

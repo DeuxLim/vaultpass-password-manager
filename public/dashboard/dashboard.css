@@ -296,6 +296,40 @@ h1 {
   gap: 8px;
 }
 
+.shared-vault-subpanel {
+  border-top: 1px solid var(--line);
+  padding-top: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.shared-vault-subpanel h3 {
+  margin: 0;
+}
+
+.shared-vault-manage-controls {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.shared-vault-manage-controls select,
+.shared-vaults-form select {
+  min-height: 44px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface-muted);
+  color: var(--text);
+  font: inherit;
+  padding: 10px 12px;
+}
+
+.shared-vault-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .shared-vault-row {
   border: 1px solid var(--line);
   border-radius: 12px;
@@ -706,6 +740,10 @@ button:focus-visible,
   .shared-vaults-form input {
     min-width: 0;
     width: 100%;
+  }
+  .shared-vault-manage-controls {
+    display: grid;
+    grid-template-columns: 1fr;
   }
   .vault-modal {
     width: 100vw;
