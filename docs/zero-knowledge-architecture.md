@@ -41,7 +41,7 @@ Status: Phase B initial implementation shipped (feature-flagged)
 - WebCrypto-only implementation vs crypto library dependency.
 
 ## Implementation Milestones
-1. Add `user_key_material` schema and API. (pending)
+1. Add `user_key_material` schema and API. (done)
 2. Introduce client crypto module + envelope format. (done)
 3. Add feature flag for zero-knowledge vault writes. (done)
 4. Add migration telemetry and user progress tracking. (pending)

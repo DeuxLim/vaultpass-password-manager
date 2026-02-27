@@ -74,6 +74,7 @@ request_code POST /api/auth/2fa-verify-login.php 401 '{"code":"000000"}' "$csrf_
 for path in \
   /api/auth/sessions.php \
   /api/auth/2fa-status.php \
+  /api/auth/key-material.php \
   /api/auth/security-events.php \
   /api/vault/list.php \
   /api/vault/list-versions.php?item_id=1
@@ -88,6 +89,7 @@ for path in \
   /api/auth/2fa-setup.php \
   /api/auth/2fa-enable.php \
   /api/auth/2fa-disable.php \
+  /api/auth/key-material-save.php \
   /api/vault/create.php \
   /api/vault/update.php \
   /api/vault/delete.php \

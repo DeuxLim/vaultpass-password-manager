@@ -144,6 +144,12 @@ If you already created the database before vault item types (login/secure note) 
 mysql -u root -p < sql/migrations/006_add_vault_item_type.sql
 ```
 
+If you already created the database before zero-knowledge key material storage was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/007_add_user_key_material.sql
+```
+
 2. Run app:
 
 ```bash

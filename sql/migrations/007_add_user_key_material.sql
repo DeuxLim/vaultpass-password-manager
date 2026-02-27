@@ -1,0 +1,13 @@
+USE vaultpass;
+
+CREATE TABLE IF NOT EXISTS user_key_material (
+  user_id INT UNSIGNED PRIMARY KEY,
+  encrypted_dek_blob TEXT NOT NULL,
+  kdf_algorithm VARCHAR(40) NOT NULL DEFAULT 'PBKDF2',
+  kdf_salt_b64 VARCHAR(255) NOT NULL,
+  kdf_iterations INT UNSIGNED NOT NULL,
+  key_version INT UNSIGNED NOT NULL DEFAULT 1,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  CONSTRAINT fk_user_key_material_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);

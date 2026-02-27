@@ -18,7 +18,7 @@ Last updated: 2026-02-23
 - [ ] Backup and restore test completed with production-like dataset.
 
 ## Database & Operations
-- [ ] All SQL migrations applied (001-005).
+- [ ] All SQL migrations applied (001-007).
 - [ ] Daily backup schedule configured and test restore successful.
 - [ ] Error log rotation configured and retention policy documented.
 - [ ] Incident contacts and on-call rotation documented.
