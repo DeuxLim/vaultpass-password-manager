@@ -20,7 +20,7 @@ Scope: Practical subset for current architecture
 ## V4 Access Control
 - [x] Per-user scoping on vault CRUD
 - [x] Access check on session-protected endpoints
-- [ ] Authorization tests for every endpoint path
+- [x] Authorization tests for every endpoint path (`scripts/authz.sh`, unauthenticated baseline)
 
 ## V5 Validation & Encoding
 - [x] Server-side required field checks on critical flows

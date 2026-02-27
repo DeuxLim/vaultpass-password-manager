@@ -161,6 +161,12 @@ Run a basic smoke test (server must be running):
 ./scripts/smoke.sh http://localhost:8000
 ```
 
+Run unauthenticated authorization coverage checks (server must be running):
+
+```bash
+./scripts/authz.sh http://localhost:8000
+```
+
 Security checklist is tracked in:
 
 ```text
