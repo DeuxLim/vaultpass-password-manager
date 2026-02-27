@@ -44,3 +44,23 @@ function shared_vault_can_write(int $vaultId, int $userId): bool
     $role = shared_vault_user_role($vaultId, $userId);
     return in_array($role, ['owner', 'editor'], true);
 }
+
+function shared_vault_can_invite_role(string $actorRole, string $targetRole): bool
+{
+    $actor = strtolower(trim($actorRole));
+    $target = strtolower(trim($targetRole));
+
+    if (!in_array($target, ['viewer', 'editor'], true)) {
+        return false;
+    }
+
+    if ($actor === 'owner') {
+        return true;
+    }
+
+    if ($actor === 'editor') {
+        return $target === 'viewer';
+    }
+
+    return false;
+}

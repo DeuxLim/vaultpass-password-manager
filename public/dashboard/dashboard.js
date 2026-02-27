@@ -1351,8 +1351,14 @@ function renderSharedVaultSelector() {
 
   const selected = sharedVaults.find((vault) => Number(vault.id) === selectedSharedVaultId);
   const canInvite = ['owner', 'editor'].includes(String(selected?.role || ''));
+  const canAssignEditor = String(selected?.role || '') === 'owner';
   if (sharedInviteEmailInput) sharedInviteEmailInput.disabled = !canInvite;
-  if (sharedInviteRoleSelect) sharedInviteRoleSelect.disabled = !canInvite;
+  if (sharedInviteRoleSelect) {
+    sharedInviteRoleSelect.disabled = !canInvite;
+    sharedInviteRoleSelect.innerHTML = canAssignEditor
+      ? '<option value="viewer">Viewer</option><option value="editor">Editor</option>'
+      : '<option value="viewer">Viewer</option>';
+  }
   const inviteButton = sharedInviteForm?.querySelector('button[type="submit"]');
   if (inviteButton instanceof HTMLButtonElement) inviteButton.disabled = !canInvite;
 }

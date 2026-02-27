@@ -39,6 +39,10 @@ $access = find_shared_vault_membership($vaultId, $userId, true);
 if (!$access || !in_array((string)$access['role'], ['owner', 'editor'], true)) {
     json_response(['ok' => false, 'error' => 'Insufficient shared vault permissions'], 403);
 }
+$actorRole = (string)($access['role'] ?? '');
+if (!shared_vault_can_invite_role($actorRole, $role)) {
+    json_response(['ok' => false, 'error' => 'Insufficient permission to invite selected role'], 403);
+}
 
 $targetUserStmt = $pdo->prepare('SELECT id, name, email FROM users WHERE email = :email LIMIT 1');
 $targetUserStmt->execute(['email' => $email]);
