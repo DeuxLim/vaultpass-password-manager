@@ -72,6 +72,15 @@ function findMatches(items, pageHost) {
     .map((entry) => entry.item);
 }
 
+function normalizeItemType(value) {
+  return String(value || '').trim() === 'secure_note' ? 'secure_note' : 'login';
+}
+
+function isLoginCredential(item) {
+  if (normalizeItemType(item?.item_type) !== 'login') return false;
+  return String(item?.username || '').trim() !== '' && String(item?.password || '') !== '';
+}
+
 async function getMatchedCredentials(url) {
   const host = normalizeHostname(url);
   if (!host) {
@@ -79,7 +88,7 @@ async function getMatchedCredentials(url) {
   }
 
   const items = await fetchVaultItems();
-  const matches = findMatches(items, host).slice(0, 8);
+  const matches = findMatches(items, host).filter(isLoginCredential).slice(0, 8);
   return {
     ok: true,
     items: matches.map((item) => ({
@@ -110,7 +119,7 @@ async function saveSubmittedCredential(payload) {
   }
 
   const items = await fetchVaultItems();
-  const matches = findMatches(items, host);
+  const matches = findMatches(items, host).filter(isLoginCredential);
   const usernameMatch = matches.find((item) => String(item.username || '').trim().toLowerCase() === username.toLowerCase());
   const target = usernameMatch || matches[0] || null;
 

@@ -36,6 +36,26 @@ function filteredItems() {
   });
 }
 
+function normalizeItemType(value) {
+  return String(value || '').trim() === 'secure_note' ? 'secure_note' : 'login';
+}
+
+function formatItemType(value) {
+  return normalizeItemType(value) === 'secure_note' ? 'Secure Note' : 'Login';
+}
+
+function renderItemActions(item) {
+  if (normalizeItemType(item.item_type) === 'secure_note') {
+    return '<button type="button" data-action="copy-note" data-id="' + item.id + '">Copy Note</button>';
+  }
+
+  return `
+    <button type="button" data-action="fill" data-id="${item.id}">Fill</button>
+    <button type="button" data-action="copy-user" data-id="${item.id}">Copy User</button>
+    <button type="button" data-action="copy-pass" data-id="${item.id}">Copy Pass</button>
+  `;
+}
+
 function renderList() {
   const visible = filteredItems();
   if (visible.length === 0) {
@@ -48,12 +68,8 @@ function renderList() {
   vaultList.innerHTML = visible.map((item) => `
     <article class="vault-item">
       <h2>${escapeHtml(item.site)}</h2>
-      <p class="vault-meta">${escapeHtml(item.username)}</p>
-      <div class="item-actions">
-        <button type="button" data-action="fill" data-id="${item.id}">Fill</button>
-        <button type="button" data-action="copy-user" data-id="${item.id}">Copy User</button>
-        <button type="button" data-action="copy-pass" data-id="${item.id}">Copy Pass</button>
-      </div>
+      <p class="vault-meta">${escapeHtml(formatItemType(item.item_type))} · ${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? 'No login fields' : item.username)}</p>
+      <div class="item-actions ${normalizeItemType(item.item_type) === 'secure_note' ? 'item-actions-note' : ''}">${renderItemActions(item)}</div>
     </article>
   `).join('');
 }
@@ -133,6 +149,9 @@ vaultList.addEventListener('click', async (event) => {
 
   try {
     if (button.dataset.action === 'fill') {
+      if (normalizeItemType(item.item_type) === 'secure_note') {
+        throw new Error('Secure notes cannot be autofilled.');
+      }
       const response = await chrome.runtime.sendMessage({
         type: 'EXT_FILL_ACTIVE_TAB',
         credential: {
@@ -145,9 +164,21 @@ vaultList.addEventListener('click', async (event) => {
       if (!response?.ok) {
         throw new Error(response?.error || 'Unable to fill in page');
       }
+    } else if (button.dataset.action === 'copy-note') {
+      const note = String(item.notes || '').trim();
+      if (!note) {
+        throw new Error('Secure note is empty.');
+      }
+      await navigator.clipboard.writeText(note);
     } else if (button.dataset.action === 'copy-user') {
+      if (normalizeItemType(item.item_type) === 'secure_note') {
+        throw new Error('Secure notes do not contain usernames.');
+      }
       await navigator.clipboard.writeText(item.username);
     } else if (button.dataset.action === 'copy-pass') {
+      if (normalizeItemType(item.item_type) === 'secure_note') {
+        throw new Error('Secure notes do not contain passwords.');
+      }
       await navigator.clipboard.writeText(item.password);
     }
     setError('');

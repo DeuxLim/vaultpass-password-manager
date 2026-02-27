@@ -141,6 +141,9 @@ input:focus-visible {
   grid-template-columns: 1fr 1fr 1fr;
   gap: 6px;
 }
+.item-actions-note {
+  grid-template-columns: 1fr;
+}
 .item-actions button {
   min-height: 36px;
   border-radius: 8px;
