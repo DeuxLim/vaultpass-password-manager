@@ -96,6 +96,16 @@ const sharedInviteRoleSelect = document.getElementById('sharedInviteRoleSelect')
 const sharedMemberError = document.getElementById('sharedMemberError');
 const sharedMemberEmpty = document.getElementById('sharedMemberEmpty');
 const sharedMemberList = document.getElementById('sharedMemberList');
+const emergencyGrantForm = document.getElementById('emergencyGrantForm');
+const emergencyGrantEmailInput = document.getElementById('emergencyGrantEmailInput');
+const emergencyWaitHoursInput = document.getElementById('emergencyWaitHoursInput');
+const emergencyError = document.getElementById('emergencyError');
+const emergencyGivenEmpty = document.getElementById('emergencyGivenEmpty');
+const emergencyGivenList = document.getElementById('emergencyGivenList');
+const emergencyReceivedEmpty = document.getElementById('emergencyReceivedEmpty');
+const emergencyReceivedList = document.getElementById('emergencyReceivedList');
+const emergencyRequestsEmpty = document.getElementById('emergencyRequestsEmpty');
+const emergencyRequestsList = document.getElementById('emergencyRequestsList');
 
 let items = [];
 let historyItemId = 0;
@@ -116,6 +126,10 @@ let sharedInvitations = [];
 let sharedMembers = [];
 let selectedSharedVaultId = 0;
 let currentUserId = 0;
+let emergencyAccessAvailable = false;
+let emergencyGrantsGiven = [];
+let emergencyGrantsReceived = [];
+let emergencyRequests = [];
 
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
@@ -1639,6 +1653,133 @@ async function transferSharedVaultOwnership(newOwnerUserId) {
   showToast('Ownership transferred.');
 }
 
+function setEmergencyEmptyState(element, listElement, hasItems, emptyText) {
+  if (!element || !listElement) return;
+  if (hasItems) {
+    element.style.display = 'none';
+    return;
+  }
+  listElement.innerHTML = '';
+  element.textContent = emptyText;
+  element.style.display = 'block';
+}
+
+function renderEmergencyAccess() {
+  if (!emergencyGivenList || !emergencyReceivedList || !emergencyRequestsList) return;
+
+  if (!emergencyAccessAvailable) {
+    setEmergencyEmptyState(emergencyGivenEmpty, emergencyGivenList, false, 'Emergency access unavailable until migration 010 is applied.');
+    setEmergencyEmptyState(emergencyReceivedEmpty, emergencyReceivedList, false, 'Emergency access unavailable until migration 010 is applied.');
+    setEmergencyEmptyState(emergencyRequestsEmpty, emergencyRequestsList, false, 'Emergency access unavailable until migration 010 is applied.');
+    return;
+  }
+
+  if (emergencyGrantsGiven.length > 0) {
+    emergencyGivenEmpty.style.display = 'none';
+    emergencyGivenList.innerHTML = emergencyGrantsGiven.map((grant) => `
+      <article class="shared-vault-row">
+        <div>
+          <p class="shared-vault-name">${escapeHtml(grant.grantee_name)} (${escapeHtml(grant.grantee_email)})</p>
+          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? 'Enabled' : 'Revoked'}</p>
+        </div>
+        <div class="shared-vault-actions">
+          ${grant.is_enabled ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-revoke-grant" data-grant-id="${grant.id}">Revoke</button>` : ''}
+        </div>
+      </article>
+    `).join('');
+  } else {
+    setEmergencyEmptyState(emergencyGivenEmpty, emergencyGivenList, false, 'No emergency access grants configured.');
+  }
+
+  if (emergencyGrantsReceived.length > 0) {
+    emergencyReceivedEmpty.style.display = 'none';
+    emergencyReceivedList.innerHTML = emergencyGrantsReceived.map((grant) => `
+      <article class="shared-vault-row">
+        <div>
+          <p class="shared-vault-name">${escapeHtml(grant.owner_name)} (${escapeHtml(grant.owner_email)})</p>
+          <p class="shared-vault-meta">Wait: ${Number(grant.wait_period_hours)}h · ${grant.is_enabled ? 'Enabled' : 'Disabled'}</p>
+        </div>
+        <div class="shared-vault-actions">
+          ${grant.is_enabled ? `<button type="button" class="btn btn-primary" data-action="emergency-request-access" data-grant-id="${grant.id}">Request Access</button>` : ''}
+        </div>
+      </article>
+    `).join('');
+  } else {
+    setEmergencyEmptyState(emergencyReceivedEmpty, emergencyReceivedList, false, 'No emergency access grants available to request.');
+  }
+
+  if (emergencyRequests.length > 0) {
+    emergencyRequestsEmpty.style.display = 'none';
+    emergencyRequestsList.innerHTML = emergencyRequests.map((request) => `
+      <article class="shared-vault-row">
+        <div>
+          <p class="shared-vault-name">${escapeHtml(request.owner_name)} ⇄ ${escapeHtml(request.requester_name)}</p>
+          <p class="shared-vault-meta">Status: ${escapeHtml(request.status)} · Requested: ${escapeHtml(formatDateTime(request.requested_at))}</p>
+        </div>
+        <div class="shared-vault-actions">
+          ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-primary" data-action="emergency-approve-request" data-request-id="${request.id}">Approve</button>` : ''}
+          ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-deny-request" data-request-id="${request.id}">Deny</button>` : ''}
+        </div>
+      </article>
+    `).join('');
+  } else {
+    setEmergencyEmptyState(emergencyRequestsEmpty, emergencyRequestsList, false, 'No emergency access requests.');
+  }
+}
+
+async function loadEmergencyAccess() {
+  if (emergencyError) emergencyError.textContent = '';
+  const data = await requestApi('../api/emergency-access/list.php', 'GET');
+  emergencyAccessAvailable = Boolean(data?.available);
+  emergencyGrantsGiven = Array.isArray(data?.grants_given) ? data.grants_given : [];
+  emergencyGrantsReceived = Array.isArray(data?.grants_received) ? data.grants_received : [];
+  emergencyRequests = Array.isArray(data?.requests) ? data.requests : [];
+  renderEmergencyAccess();
+}
+
+async function createEmergencyGrant() {
+  if (emergencyError) emergencyError.textContent = '';
+  const email = String(emergencyGrantEmailInput?.value || '').trim();
+  const waitPeriodHours = Number(emergencyWaitHoursInput?.value || 24);
+  if (!email) {
+    if (emergencyError) emergencyError.textContent = 'Emergency contact email is required.';
+    return;
+  }
+
+  await csrfReady;
+  await requestApi('../api/emergency-access/grant.php', 'POST', {
+    email,
+    wait_period_hours: waitPeriodHours,
+  });
+  if (emergencyGrantEmailInput) emergencyGrantEmailInput.value = '';
+  await loadEmergencyAccess();
+  showToast('Emergency access grant saved.');
+}
+
+async function revokeEmergencyGrant(grantId) {
+  await csrfReady;
+  await requestApi('../api/emergency-access/revoke.php', 'POST', { grant_id: grantId });
+  await loadEmergencyAccess();
+  showToast('Emergency grant revoked.');
+}
+
+async function requestEmergencyAccess(grantId) {
+  await csrfReady;
+  await requestApi('../api/emergency-access/request.php', 'POST', { grant_id: grantId });
+  await loadEmergencyAccess();
+  showToast('Emergency access requested.');
+}
+
+async function decideEmergencyRequest(requestId, action) {
+  await csrfReady;
+  await requestApi('../api/emergency-access/decide.php', 'POST', {
+    request_id: requestId,
+    action,
+  });
+  await loadEmergencyAccess();
+  showToast(action === 'approve' ? 'Emergency request approved.' : 'Emergency request denied.');
+}
+
 addItemBtn?.addEventListener('click', (e) => openModal(null, e.currentTarget));
 backupBtn?.addEventListener('click', (e) => {
   resetBackupUi();
@@ -1744,6 +1885,14 @@ sharedVaultForm?.addEventListener('submit', async (e) => {
     await createSharedVault();
   } catch (error) {
     if (sharedVaultError) sharedVaultError.textContent = error.message || 'Unable to create shared vault.';
+  }
+});
+emergencyGrantForm?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  try {
+    await createEmergencyGrant();
+  } catch (error) {
+    if (emergencyError) emergencyError.textContent = error.message || 'Unable to save emergency grant.';
   }
 });
 sharedInviteForm?.addEventListener('submit', async (e) => {
@@ -2134,6 +2283,70 @@ sharedVaultList?.addEventListener('click', async (e) => {
   }
 });
 
+emergencyGivenList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+  if (button.dataset.action !== 'emergency-revoke-grant') return;
+
+  const grantId = Number(button.dataset.grantId || 0);
+  if (!grantId) return;
+
+  try {
+    const confirmed = window.confirm('Revoke this emergency access grant?');
+    if (!confirmed) return;
+    await revokeEmergencyGrant(grantId);
+  } catch (error) {
+    if (emergencyError) emergencyError.textContent = error.message || 'Unable to revoke grant.';
+  }
+});
+
+emergencyReceivedList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+  if (button.dataset.action !== 'emergency-request-access') return;
+
+  const grantId = Number(button.dataset.grantId || 0);
+  if (!grantId) return;
+
+  try {
+    const confirmed = window.confirm('Request emergency access now?');
+    if (!confirmed) return;
+    await requestEmergencyAccess(grantId);
+  } catch (error) {
+    if (emergencyError) emergencyError.textContent = error.message || 'Unable to request emergency access.';
+  }
+});
+
+emergencyRequestsList?.addEventListener('click', async (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action]');
+  if (!(button instanceof HTMLElement)) return;
+
+  const requestId = Number(button.dataset.requestId || 0);
+  if (!requestId) return;
+
+  try {
+    if (button.dataset.action === 'emergency-approve-request') {
+      const confirmed = window.confirm('Approve this emergency access request?');
+      if (!confirmed) return;
+      await decideEmergencyRequest(requestId, 'approve');
+      return;
+    }
+    if (button.dataset.action === 'emergency-deny-request') {
+      const confirmed = window.confirm('Deny this emergency access request?');
+      if (!confirmed) return;
+      await decideEmergencyRequest(requestId, 'deny');
+    }
+  } catch (error) {
+    if (emergencyError) emergencyError.textContent = error.message || 'Unable to update emergency request.';
+  }
+});
+
 sharedMemberList?.addEventListener('click', async (e) => {
   const target = e.target;
   if (!(target instanceof HTMLElement)) return;
@@ -2176,6 +2389,7 @@ sharedMemberList?.addEventListener('click', async (e) => {
     await loadSharedVaults();
     await loadSharedInvitations();
     await loadSharedMembers();
+    await loadEmergencyAccess();
   } catch (_error) {
     showToast('Unable to load dashboard data.', 'error');
   }

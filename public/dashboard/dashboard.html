@@ -19,6 +19,7 @@
       <nav class="sidebar-nav" aria-label="Dashboard sections">
         <a href="#mainContent" class="nav-item is-active">Vault</a>
         <a href="#sharedVaultsPanel" class="nav-item">Shared Vaults</a>
+        <a href="#emergencyAccessPanel" class="nav-item">Emergency Access</a>
         <button type="button" id="backupBtn" class="nav-item">Import / Export</button>
         <button type="button" id="securityBtn" class="nav-item">Security</button>
       </nav>
@@ -101,6 +102,46 @@
           <p id="sharedMemberError" class="form-error" role="alert" aria-live="assertive"></p>
           <p id="sharedMemberEmpty" class="empty-state">Load a shared vault to view members.</p>
           <div id="sharedMemberList" class="shared-vaults-list"></div>
+        </section>
+      </section>
+
+      <section id="emergencyAccessPanel" class="shared-vaults-panel" aria-label="Emergency access">
+        <div class="shared-vaults-header">
+          <div>
+            <p class="eyebrow">Continuity</p>
+            <h2>Emergency Access</h2>
+          </div>
+          <form id="emergencyGrantForm" class="shared-vaults-form">
+            <label for="emergencyGrantEmailInput" class="sr-only">Emergency contact email</label>
+            <input id="emergencyGrantEmailInput" type="email" placeholder="trusted-contact@example.com">
+            <label for="emergencyWaitHoursInput" class="sr-only">Wait period hours</label>
+            <select id="emergencyWaitHoursInput">
+              <option value="24">24h wait</option>
+              <option value="48">48h wait</option>
+              <option value="72">72h wait</option>
+              <option value="168">7d wait</option>
+            </select>
+            <button type="submit" class="btn btn-primary">Grant Access</button>
+          </form>
+        </div>
+        <p id="emergencyError" class="form-error" role="alert" aria-live="assertive"></p>
+
+        <section class="shared-vault-subpanel">
+          <h3>Access You Granted</h3>
+          <p id="emergencyGivenEmpty" class="empty-state">No emergency access grants configured.</p>
+          <div id="emergencyGivenList" class="shared-vaults-list"></div>
+        </section>
+
+        <section class="shared-vault-subpanel">
+          <h3>Access Granted To You</h3>
+          <p id="emergencyReceivedEmpty" class="empty-state">No emergency access grants available to request.</p>
+          <div id="emergencyReceivedList" class="shared-vaults-list"></div>
+        </section>
+
+        <section class="shared-vault-subpanel">
+          <h3>Emergency Requests</h3>
+          <p id="emergencyRequestsEmpty" class="empty-state">No emergency access requests.</p>
+          <div id="emergencyRequestsList" class="shared-vaults-list"></div>
         </section>
       </section>
 
