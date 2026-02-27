@@ -74,3 +74,6 @@ Backend URL:
 - [ ] 20
 
 Notes:
+
+Implementation note:
+- For pages with multiple login forms, extension fill prioritizes the currently focused/last-interacted form.

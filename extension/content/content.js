@@ -3,6 +3,7 @@ let matchedCredentials = [];
 let promptElement = null;
 let statusElement = null;
 let selectElement = null;
+let lastInteractedForm = null;
 
 function isVisibleField(input) {
   if (!(input instanceof HTMLElement)) return false;
@@ -76,16 +77,50 @@ function detectLoginFormFields(form) {
   return { username, password };
 }
 
+function loginFieldsForForm(form) {
+  if (!(form instanceof HTMLFormElement)) return null;
+  const fields = detectLoginFormFields(form);
+  if (!fields || !fields.password) return null;
+  return fields;
+}
+
+function findPreferredForm() {
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) {
+    const activeForm = active.closest('form');
+    const activeFields = loginFieldsForForm(activeForm);
+    if (activeFields) {
+      return { form: activeForm, fields: activeFields };
+    }
+  }
+
+  if (lastInteractedForm instanceof HTMLFormElement && document.contains(lastInteractedForm)) {
+    const rememberedFields = loginFieldsForForm(lastInteractedForm);
+    if (rememberedFields) {
+      return { form: lastInteractedForm, fields: rememberedFields };
+    }
+  }
+
+  const forms = Array.from(document.forms);
+  for (const form of forms) {
+    const fields = loginFieldsForForm(form);
+    if (fields) {
+      return { form, fields };
+    }
+  }
+
+  return null;
+}
+
 function fireInputEvents(input) {
   input.dispatchEvent(new Event('input', { bubbles: true }));
   input.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 function fillCredential(credential) {
-  const forms = Array.from(document.forms);
-  for (const form of forms) {
-    const fields = detectLoginFormFields(form);
-    if (!fields) continue;
+  const candidate = findPreferredForm();
+  if (candidate?.fields) {
+    const { form, fields } = candidate;
     if (fields.username) {
       fields.username.focus();
       fields.username.value = credential.username;
@@ -94,6 +129,7 @@ function fillCredential(credential) {
     fields.password.focus();
     fields.password.value = credential.password;
     fireInputEvents(fields.password);
+    lastInteractedForm = form;
     setStatus(`Filled ${credential.site}`);
     return true;
   }
@@ -253,6 +289,9 @@ function bindForms(root = document) {
     if (formsBound.has(form)) return;
     if (!detectLoginFormFields(form)) return;
     formsBound.add(form);
+    form.addEventListener('focusin', () => {
+      lastInteractedForm = form;
+    });
     form.addEventListener('submit', formSubmitHandler(form));
   });
 }
