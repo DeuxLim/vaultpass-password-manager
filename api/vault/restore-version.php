@@ -17,12 +17,42 @@ if ($versionId <= 0) {
 $pdo = db();
 $supportsItemType = db_column_exists('vault_items', 'item_type');
 $supportsVersionItemType = db_column_exists('vault_item_versions', 'item_type');
+$supportsSharedVaultId = db_column_exists('vault_items', 'shared_vault_id');
+if ($supportsSharedVaultId && !shared_vaults_available()) {
+    $supportsSharedVaultId = false;
+}
 
 try {
     $pdo->beginTransaction();
 
     $versionItemTypeSelect = $supportsVersionItemType ? 'vv.item_type AS version_item_type,' : '';
     $currentItemTypeSelect = $supportsItemType ? 'vi.item_type AS current_item_type,' : '';
+    $sharedSelect = $supportsSharedVaultId ? 'vi.shared_vault_id AS current_shared_vault_id,' : '';
+    $permissionClause = 'vi.user_id = :user_id';
+    $params = [
+        'version_id' => $versionId,
+        'user_id' => $userId,
+    ];
+    if ($supportsSharedVaultId) {
+        $permissionClause = '(vi.shared_vault_id IS NULL AND vi.user_id = :user_id_personal)
+           OR (
+             vi.shared_vault_id IS NOT NULL
+             AND EXISTS (
+               SELECT 1
+               FROM shared_vault_members svm
+               WHERE svm.shared_vault_id = vi.shared_vault_id
+                 AND svm.user_id = :user_id_shared
+                 AND svm.invitation_status = \'accepted\'
+                 AND svm.role IN (\'owner\', \'editor\')
+             )
+           )';
+        $params = [
+            'version_id' => $versionId,
+            'user_id_personal' => $userId,
+            'user_id_shared' => $userId,
+        ];
+    }
+
     $stmt = $pdo->prepare(
         'SELECT
             vv.id AS version_id,
@@ -35,6 +65,7 @@ try {
             vv.username_enc AS version_username_enc,
             vv.password_enc AS version_password_enc,
             vv.notes_enc AS version_notes_enc,
+            ' . $sharedSelect . '
             vi.site AS current_site,
             ' . $currentItemTypeSelect . '
             vi.folder AS current_folder,
@@ -46,15 +77,11 @@ try {
          FROM vault_item_versions vv
          INNER JOIN vault_items vi ON vi.id = vv.vault_item_id
          WHERE vv.id = :version_id
-           AND vv.user_id = :user_id
-           AND vi.user_id = :user_id
+           AND (' . $permissionClause . ')
          LIMIT 1
          FOR UPDATE'
     );
-    $stmt->execute([
-        'version_id' => $versionId,
-        'user_id' => $userId,
-    ]);
+    $stmt->execute($params);
     $row = $stmt->fetch();
 
     if (!$row) {
@@ -111,7 +138,7 @@ try {
                  password_enc = :password_enc,
                  notes_enc = :notes_enc,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = :vault_item_id AND user_id = :user_id'
+             WHERE id = :vault_item_id'
         );
         $updateStmt->execute([
             'site' => (string)$row['version_site'],
@@ -123,7 +150,6 @@ try {
             'password_enc' => (string)$row['version_password_enc'],
             'notes_enc' => (string)$row['version_notes_enc'],
             'vault_item_id' => (int)$row['vault_item_id'],
-            'user_id' => $userId,
         ]);
     } else {
         $updateStmt = $pdo->prepare(
@@ -136,7 +162,7 @@ try {
                  password_enc = :password_enc,
                  notes_enc = :notes_enc,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = :vault_item_id AND user_id = :user_id'
+             WHERE id = :vault_item_id'
         );
         $updateStmt->execute([
             'site' => (string)$row['version_site'],
@@ -147,7 +173,6 @@ try {
             'password_enc' => (string)$row['version_password_enc'],
             'notes_enc' => (string)$row['version_notes_enc'],
             'vault_item_id' => (int)$row['vault_item_id'],
-            'user_id' => $userId,
         ]);
     }
 
@@ -163,6 +188,7 @@ try {
 audit_log('vault.restore_version', $userId, [
     'vault_item_id' => (int)$row['vault_item_id'],
     'version_id' => $versionId,
+    'shared_vault_id' => isset($row['current_shared_vault_id']) && $row['current_shared_vault_id'] !== null ? (int)$row['current_shared_vault_id'] : null,
 ]);
 
 json_response(['ok' => true]);

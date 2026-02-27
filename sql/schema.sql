@@ -49,6 +49,7 @@ CREATE TABLE IF NOT EXISTS user_key_material (
 CREATE TABLE IF NOT EXISTS vault_items (
   id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
   user_id INT UNSIGNED NOT NULL,
+  shared_vault_id BIGINT UNSIGNED NULL DEFAULT NULL,
   site VARCHAR(191) NOT NULL,
   item_type VARCHAR(20) NOT NULL DEFAULT 'login',
   folder VARCHAR(120) NOT NULL DEFAULT '',
@@ -60,6 +61,8 @@ CREATE TABLE IF NOT EXISTS vault_items (
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   INDEX idx_vault_user (user_id),
+  INDEX idx_vault_shared_vault (shared_vault_id),
+  CONSTRAINT fk_vault_shared_vault FOREIGN KEY (shared_vault_id) REFERENCES shared_vaults(id) ON DELETE SET NULL,
   CONSTRAINT fk_vault_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 

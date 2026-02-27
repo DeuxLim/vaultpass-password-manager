@@ -15,11 +15,42 @@ if ($id <= 0) {
 }
 
 $pdo = db();
-$stmt = $pdo->prepare('DELETE FROM vault_items WHERE id = :id AND user_id = :user_id');
-$stmt->execute([
-    'id' => $id,
-    'user_id' => $userId,
-]);
+$supportsSharedVaultId = db_column_exists('vault_items', 'shared_vault_id');
+if ($supportsSharedVaultId && !shared_vaults_available()) {
+    $supportsSharedVaultId = false;
+}
+
+if ($supportsSharedVaultId) {
+    $stmt = $pdo->prepare(
+        'DELETE FROM vault_items
+         WHERE id = :id
+           AND (
+             (shared_vault_id IS NULL AND user_id = :user_id_personal)
+             OR (
+               shared_vault_id IS NOT NULL
+               AND EXISTS (
+                 SELECT 1
+                 FROM shared_vault_members svm
+                 WHERE svm.shared_vault_id = vault_items.shared_vault_id
+                   AND svm.user_id = :user_id_shared
+                   AND svm.invitation_status = \'accepted\'
+                   AND svm.role IN (\'owner\', \'editor\')
+               )
+             )
+           )'
+    );
+    $stmt->execute([
+        'id' => $id,
+        'user_id_personal' => $userId,
+        'user_id_shared' => $userId,
+    ]);
+} else {
+    $stmt = $pdo->prepare('DELETE FROM vault_items WHERE id = :id AND user_id = :user_id');
+    $stmt->execute([
+        'id' => $id,
+        'user_id' => $userId,
+    ]);
+}
 
 if ($stmt->rowCount() === 0) {
     json_response(['ok' => false, 'error' => 'Record not found'], 404);

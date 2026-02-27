@@ -77,6 +77,11 @@ function normalize_is_favorite_input(mixed $value): bool
 
 function normalize_vault_item_payload(array $input): array
 {
+    $sharedVaultId = (int)($input['shared_vault_id'] ?? 0);
+    if ($sharedVaultId < 0) {
+        $sharedVaultId = 0;
+    }
+
     return [
         'site' => mb_substr(trim((string)($input['site'] ?? '')), 0, 191),
         'item_type' => normalize_item_type($input['item_type'] ?? 'login'),
@@ -86,6 +91,7 @@ function normalize_vault_item_payload(array $input): array
         'folder' => mb_substr(trim((string)($input['folder'] ?? '')), 0, 120),
         'is_favorite' => normalize_is_favorite_input($input['is_favorite'] ?? 0),
         'tags' => normalize_tags_input($input['tags'] ?? []),
+        'shared_vault_id' => $sharedVaultId,
     ];
 }
 

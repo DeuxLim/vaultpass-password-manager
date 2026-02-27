@@ -28,3 +28,19 @@ function find_shared_vault_membership(int $vaultId, int $userId, bool $acceptedO
     $row = $stmt->fetch();
     return is_array($row) ? $row : null;
 }
+
+function shared_vault_user_role(int $vaultId, int $userId): ?string
+{
+    $membership = find_shared_vault_membership($vaultId, $userId, true);
+    if (!$membership) {
+        return null;
+    }
+
+    return (string)($membership['role'] ?? '');
+}
+
+function shared_vault_can_write(int $vaultId, int $userId): bool
+{
+    $role = shared_vault_user_role($vaultId, $userId);
+    return in_array($role, ['owner', 'editor'], true);
+}

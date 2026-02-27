@@ -31,6 +31,10 @@ $tags = $payload['tags'];
 $pdo = db();
 $supportsItemType = db_column_exists('vault_items', 'item_type');
 $supportsVersionItemType = db_column_exists('vault_item_versions', 'item_type');
+$supportsSharedVaultId = db_column_exists('vault_items', 'shared_vault_id');
+if ($supportsSharedVaultId && !shared_vaults_available()) {
+    $supportsSharedVaultId = false;
+}
 
 if ($itemType === 'secure_note' && !$supportsItemType) {
     json_response(['ok' => false, 'error' => 'Secure notes require migration 006 (item type support)'], 409);
@@ -46,17 +50,45 @@ try {
         if ($supportsItemType) {
             $currentColumns = 'id, site, item_type, folder, tags_json, is_favorite, username_enc, password_enc, notes_enc';
         }
+        if ($supportsSharedVaultId) {
+            $currentColumns = 'id, shared_vault_id, site, ' . ($supportsItemType ? 'item_type, ' : '') . 'folder, tags_json, is_favorite, username_enc, password_enc, notes_enc';
+        }
+
+        $whereClause = 'id = :id AND user_id = :user_id';
+        $params = [
+            'id' => $id,
+            'user_id' => $userId,
+        ];
+        if ($supportsSharedVaultId) {
+            $whereClause = 'id = :id AND (
+                (shared_vault_id IS NULL AND user_id = :user_id_personal)
+                OR (
+                    shared_vault_id IS NOT NULL
+                    AND EXISTS (
+                        SELECT 1
+                        FROM shared_vault_members svm
+                        WHERE svm.shared_vault_id = vault_items.shared_vault_id
+                          AND svm.user_id = :user_id_shared
+                          AND svm.invitation_status = \'accepted\'
+                          AND svm.role IN (\'owner\', \'editor\')
+                    )
+                )
+            )';
+            $params = [
+                'id' => $id,
+                'user_id_personal' => $userId,
+                'user_id_shared' => $userId,
+            ];
+        }
+
         $selectStmt = $pdo->prepare(
             "SELECT {$currentColumns}
              FROM vault_items
-             WHERE id = :id AND user_id = :user_id
+             WHERE {$whereClause}
              LIMIT 1
              FOR UPDATE"
         );
-        $selectStmt->execute([
-            'id' => $id,
-            'user_id' => $userId,
-        ]);
+        $selectStmt->execute($params);
         $current = $selectStmt->fetch();
     } catch (PDOException $e) {
         if ((string)$e->getCode() !== '42S22') {
@@ -81,6 +113,15 @@ try {
     if (!$current) {
         $pdo->rollBack();
         json_response(['ok' => false, 'error' => 'Record not found'], 404);
+    }
+
+    if ($supportsSharedVaultId && !$legacySchema) {
+        $currentSharedVaultId = isset($current['shared_vault_id']) && $current['shared_vault_id'] !== null ? (int)$current['shared_vault_id'] : 0;
+        $requestedSharedVaultId = (int)($payload['shared_vault_id'] ?? 0);
+        if ($requestedSharedVaultId > 0 && $requestedSharedVaultId !== $currentSharedVaultId) {
+            $pdo->rollBack();
+            json_response(['ok' => false, 'error' => 'Changing shared vault association is not supported in update endpoint'], 409);
+        }
     }
 
     try {
@@ -153,11 +194,10 @@ try {
                  password_enc = :password_enc,
                  notes_enc = :notes_enc,
                  updated_at = CURRENT_TIMESTAMP
-             WHERE id = :id AND user_id = :user_id'
+             WHERE id = :id'
         );
         $updateStmt->execute([
             'id' => $id,
-            'user_id' => $userId,
             'site' => $site,
             'username_enc' => encrypt_value($username),
             'password_enc' => encrypt_value($password),
@@ -176,11 +216,10 @@ try {
                      password_enc = :password_enc,
                      notes_enc = :notes_enc,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = :id AND user_id = :user_id'
+                 WHERE id = :id'
             );
             $updateStmt->execute([
                 'id' => $id,
-                'user_id' => $userId,
                 'site' => $site,
                 'item_type' => $itemType,
                 'folder' => $folder,
@@ -201,11 +240,10 @@ try {
                      password_enc = :password_enc,
                      notes_enc = :notes_enc,
                      updated_at = CURRENT_TIMESTAMP
-                 WHERE id = :id AND user_id = :user_id'
+                 WHERE id = :id'
             );
             $updateStmt->execute([
                 'id' => $id,
-                'user_id' => $userId,
                 'site' => $site,
                 'folder' => $folder,
                 'tags_json' => count($tags) > 0 ? json_encode($tags, JSON_UNESCAPED_UNICODE) : null,
@@ -233,6 +271,7 @@ audit_log('vault.update', $userId, [
     'folder' => $folder,
     'tag_count' => count($tags),
     'is_favorite' => $isFavorite,
+    'shared_vault_id' => isset($current['shared_vault_id']) && $current['shared_vault_id'] !== null ? (int)$current['shared_vault_id'] : null,
     'legacy_schema' => $legacySchema,
     'version_snapshot_id' => $snapshotId,
 ]);

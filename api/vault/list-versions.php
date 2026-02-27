@@ -15,13 +15,48 @@ if ($itemId <= 0) {
 $pdo = db();
 $supportsItemType = db_column_exists('vault_items', 'item_type');
 $supportsVersionItemType = db_column_exists('vault_item_versions', 'item_type');
+$supportsSharedVaultId = db_column_exists('vault_items', 'shared_vault_id');
+if ($supportsSharedVaultId && !shared_vaults_available()) {
+    $supportsSharedVaultId = false;
+}
 
 $itemColumns = $supportsItemType ? 'id, site, item_type' : 'id, site';
-$itemStmt = $pdo->prepare("SELECT {$itemColumns} FROM vault_items WHERE id = :id AND user_id = :user_id LIMIT 1");
-$itemStmt->execute([
-    'id' => $itemId,
-    'user_id' => $userId,
-]);
+if ($supportsSharedVaultId) {
+    $itemColumns = 'id, shared_vault_id, site, ' . ($supportsItemType ? 'item_type' : '\'login\' AS item_type');
+}
+
+if ($supportsSharedVaultId) {
+    $itemStmt = $pdo->prepare(
+        "SELECT {$itemColumns}
+         FROM vault_items
+         WHERE id = :id
+           AND (
+             (shared_vault_id IS NULL AND user_id = :user_id_personal)
+             OR (
+               shared_vault_id IS NOT NULL
+               AND EXISTS (
+                 SELECT 1
+                 FROM shared_vault_members svm
+                 WHERE svm.shared_vault_id = vault_items.shared_vault_id
+                   AND svm.user_id = :user_id_shared
+                   AND svm.invitation_status = 'accepted'
+               )
+             )
+           )
+         LIMIT 1"
+    );
+    $itemStmt->execute([
+        'id' => $itemId,
+        'user_id_personal' => $userId,
+        'user_id_shared' => $userId,
+    ]);
+} else {
+    $itemStmt = $pdo->prepare("SELECT {$itemColumns} FROM vault_items WHERE id = :id AND user_id = :user_id LIMIT 1");
+    $itemStmt->execute([
+        'id' => $itemId,
+        'user_id' => $userId,
+    ]);
+}
 $item = $itemStmt->fetch();
 
 if (!$item) {
@@ -36,12 +71,11 @@ try {
     $stmt = $pdo->prepare(
         "SELECT {$versionColumns}
          FROM vault_item_versions
-         WHERE vault_item_id = :item_id AND user_id = :user_id
+         WHERE vault_item_id = :item_id
          ORDER BY created_at DESC, id DESC"
     );
     $stmt->execute([
         'item_id' => $itemId,
-        'user_id' => $userId,
     ]);
     $rows = $stmt->fetchAll();
 } catch (PDOException $e) {
@@ -49,12 +83,11 @@ try {
         $legacyStmt = $pdo->prepare(
             'SELECT id, vault_item_id, site, username_enc, password_enc, notes_enc, source, created_at
              FROM vault_item_versions
-             WHERE vault_item_id = :item_id AND user_id = :user_id
+             WHERE vault_item_id = :item_id
              ORDER BY created_at DESC, id DESC'
         );
         $legacyStmt->execute([
             'item_id' => $itemId,
-            'user_id' => $userId,
         ]);
         $rows = $legacyStmt->fetchAll();
     } elseif ((string)$e->getCode() === '42S02') {
@@ -97,6 +130,7 @@ json_response([
         'id' => (int)$item['id'],
         'site' => (string)$item['site'],
         'item_type' => (string)($item['item_type'] ?? 'login'),
+        'shared_vault_id' => isset($item['shared_vault_id']) && $item['shared_vault_id'] !== null ? (int)$item['shared_vault_id'] : null,
     ],
     'versions' => $versions,
     'history_available' => true,
