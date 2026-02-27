@@ -53,6 +53,7 @@ session_regenerate_id(true);
 csrf_token();
 $_SESSION['user_id'] = $userId;
 $_SESSION['user_name'] = $name;
+mark_session_authenticated();
 register_user_session($userId);
 audit_log('auth.register.success', $userId, ['email_sha256' => hash('sha256', $email)]);
 

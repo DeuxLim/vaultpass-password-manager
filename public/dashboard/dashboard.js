@@ -24,6 +24,7 @@ const historyList = document.getElementById('historyList');
 const sessionsModal = document.getElementById('sessionsModal');
 const sessionsCloseBtn = document.getElementById('sessionsCloseBtn');
 const revokeOthersBtn = document.getElementById('revokeOthersBtn');
+const sessionPolicyText = document.getElementById('sessionPolicyText');
 const sessionsError = document.getElementById('sessionsError');
 const sessionsList = document.getElementById('sessionsList');
 const refreshEventsBtn = document.getElementById('refreshEventsBtn');
@@ -89,6 +90,7 @@ let backupReturnFocus = null;
 let toastTimer = null;
 let parsedCsvHeaders = [];
 let parsedCsvRows = [];
+let sessionPolicy = null;
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
@@ -300,6 +302,29 @@ function formatDateTime(value) {
     hour: '2-digit',
     minute: '2-digit',
   });
+}
+
+function formatDuration(seconds) {
+  const total = Math.max(0, Number(seconds || 0));
+  if (total < 60) return `${total}s`;
+  const minutes = Math.floor(total / 60);
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `${days}d`;
+}
+
+function renderSessionPolicy() {
+  if (!sessionPolicyText) return;
+  if (!sessionPolicy) {
+    sessionPolicyText.textContent = 'Session timeout policy: unavailable';
+    return;
+  }
+
+  const idle = formatDuration(sessionPolicy.idle_timeout_seconds);
+  const absolute = formatDuration(sessionPolicy.absolute_timeout_seconds);
+  sessionPolicyText.textContent = `Session timeout policy: idle ${idle}, absolute ${absolute}.`;
 }
 
 function scorePassword(password) {
@@ -954,6 +979,8 @@ function closeModal() {
 async function loadSession() {
   const res = await fetch('../api/auth/session.php', { credentials: 'same-origin' });
   const data = await res.json();
+  sessionPolicy = data?.session_policy || null;
+  renderSessionPolicy();
 
   if (!data?.authenticated) {
     window.location.href = '../pages/login.html';
@@ -1125,6 +1152,7 @@ sessionsModal?.addEventListener('close', () => {
   sessionsError.textContent = '';
   sessionsList.innerHTML = '';
   if (securityEventsList) securityEventsList.innerHTML = '';
+  if (sessionPolicyText) sessionPolicyText.textContent = 'Session timeout policy: loading…';
   resetTwoFactorSetupUi();
   if (twofaStatusText) twofaStatusText.textContent = 'Checking status...';
 

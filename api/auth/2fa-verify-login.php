@@ -78,6 +78,7 @@ session_regenerate_id(true);
 csrf_token();
 $_SESSION['user_id'] = $pendingUserId;
 $_SESSION['user_name'] = $pendingUserName;
+mark_session_authenticated();
 register_user_session($pendingUserId);
 
 unset(

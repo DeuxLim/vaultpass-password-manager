@@ -15,7 +15,7 @@ Scope: Practical subset for current architecture
 - [x] Configurable `Secure` + `SameSite`
 - [x] Session ID regeneration on login/2FA
 - [x] Revoke current/other sessions
-- [ ] Absolute + idle session timeout policy surfaced to user
+- [x] Absolute + idle session timeout policy surfaced to user
 
 ## V4 Access Control
 - [x] Per-user scoping on vault CRUD
@@ -41,5 +41,5 @@ Scope: Practical subset for current architecture
 
 ## Gap Closure Plan (Current Sprint Focus)
 1. Done: 2FA + session controls + audit visibility.
-2. Next: zero-knowledge key material model + feature-flagged client encryption.
-3. Next: timeout policy and endpoint authorization test coverage.
+2. Done: timeout policy surfaced + endpoint authorization coverage (`scripts/authz.sh`).
+3. Next: zero-knowledge key material model + feature-flagged client encryption.

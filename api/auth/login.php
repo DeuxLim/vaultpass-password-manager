@@ -67,6 +67,7 @@ session_regenerate_id(true);
 csrf_token();
 $_SESSION['user_id'] = (int)$user['id'];
 $_SESSION['user_name'] = (string)$user['name'];
+mark_session_authenticated();
 register_user_session((int)$user['id']);
 audit_log('auth.login.success', (int)$user['id']);
 

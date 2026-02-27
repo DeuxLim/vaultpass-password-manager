@@ -35,6 +35,86 @@ function request_user_agent_header(): string
     return mb_substr($ua, 0, 500);
 }
 
+function session_idle_timeout_seconds(): int
+{
+    $raw = getenv('SESSION_IDLE_TIMEOUT');
+    if ($raw === false || trim((string)$raw) === '') {
+        return 1800;
+    }
+
+    $value = (int)$raw;
+    return $value > 0 ? $value : 1800;
+}
+
+function session_absolute_timeout_seconds(): int
+{
+    $raw = getenv('SESSION_ABSOLUTE_TIMEOUT');
+    if ($raw === false || trim((string)$raw) === '') {
+        return 2592000;
+    }
+
+    $value = (int)$raw;
+    return $value > 0 ? $value : 2592000;
+}
+
+function initialize_session_timestamps(): void
+{
+    $now = time();
+    $startedAt = (int)($_SESSION['auth_started_at'] ?? 0);
+    if ($startedAt <= 0) {
+        $_SESSION['auth_started_at'] = $now;
+    }
+
+    $lastSeenAt = (int)($_SESSION['auth_last_seen_at'] ?? 0);
+    if ($lastSeenAt <= 0) {
+        $_SESSION['auth_last_seen_at'] = $now;
+    }
+}
+
+function mark_session_authenticated(): void
+{
+    $now = time();
+    $_SESSION['auth_started_at'] = $now;
+    $_SESSION['auth_last_seen_at'] = $now;
+}
+
+function current_session_timed_out(?int $now = null): bool
+{
+    $current = $now ?? time();
+    $startedAt = (int)($_SESSION['auth_started_at'] ?? 0);
+    $lastSeenAt = (int)($_SESSION['auth_last_seen_at'] ?? 0);
+
+    if ($startedAt <= 0 || $lastSeenAt <= 0) {
+        initialize_session_timestamps();
+        return false;
+    }
+
+    $absoluteAge = $current - $startedAt;
+    if ($absoluteAge >= session_absolute_timeout_seconds()) {
+        return true;
+    }
+
+    $idleAge = $current - $lastSeenAt;
+    if ($idleAge >= session_idle_timeout_seconds()) {
+        return true;
+    }
+
+    return false;
+}
+
+function touch_session_activity(?int $now = null): void
+{
+    $_SESSION['auth_last_seen_at'] = $now ?? time();
+}
+
+function session_timeout_policy(): array
+{
+    return [
+        'idle_timeout_seconds' => session_idle_timeout_seconds(),
+        'absolute_timeout_seconds' => session_absolute_timeout_seconds(),
+    ];
+}
+
 function request_ip_header(): string
 {
     $remote = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
@@ -243,13 +323,27 @@ function revoke_other_user_sessions(int $userId): int
 function current_user_id(): ?int
 {
     $id = $_SESSION['user_id'] ?? null;
-    return is_numeric($id) ? (int)$id : null;
+    if (!is_numeric($id)) {
+        return null;
+    }
+
+    initialize_session_timestamps();
+    if (current_session_timed_out()) {
+        return null;
+    }
+
+    return (int)$id;
 }
 
 function require_auth(): int
 {
+    $rawUserId = $_SESSION['user_id'] ?? null;
     $userId = current_user_id();
     if (!$userId) {
+        if (is_numeric($rawUserId) && session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION = [];
+            session_destroy();
+        }
         json_response(['ok' => false, 'error' => 'Unauthorized'], 401);
     }
 
@@ -261,6 +355,7 @@ function require_auth(): int
         json_response(['ok' => false, 'error' => 'Session revoked. Please sign in again.'], 401);
     }
 
+    touch_session_activity();
     touch_user_session($userId);
 
     return $userId;

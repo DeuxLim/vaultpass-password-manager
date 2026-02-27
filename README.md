@@ -50,6 +50,8 @@ APP_KEY=your_long_random_secret
 APP_ENV=development
 SESSION_COOKIE_SECURE=false
 SESSION_SAMESITE=Lax
+SESSION_IDLE_TIMEOUT=1800
+SESSION_ABSOLUTE_TIMEOUT=2592000
 
 # Optional rate-limit tuning
 LOGIN_RATE_LIMIT_WINDOW=60
@@ -70,6 +72,8 @@ TOTP_WINDOW=1
 # Optional encrypted backup tuning
 BACKUP_KDF_ITERATIONS=210000
 ```
+
+`SESSION_IDLE_TIMEOUT` and `SESSION_ABSOLUTE_TIMEOUT` are in seconds.
 
 `APP_KEY` must be a long random value.
 
