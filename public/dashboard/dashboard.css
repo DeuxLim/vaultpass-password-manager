@@ -196,6 +196,7 @@ h1 {
 #searchInput,
 .filters-panel select,
 .vault-modal input,
+.vault-modal select,
 .vault-modal textarea,
 .backup-block select {
   border: 1px solid var(--line);
@@ -506,6 +507,7 @@ td.actions button[data-action="edit"]:hover,
 }
 .vault-modal label { font-size: 13px; color: var(--muted); }
 .vault-modal input,
+.vault-modal select,
 .vault-modal textarea,
 .backup-block select {
   width: 100%;

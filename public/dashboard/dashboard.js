@@ -70,6 +70,7 @@ const generatePasswordBtn = document.getElementById('generatePasswordBtn');
 const folderInput = document.getElementById('folderInput');
 const tagsInput = document.getElementById('tagsInput');
 const favoriteInput = document.getElementById('favoriteInput');
+const sharedVaultItemInput = document.getElementById('sharedVaultItemInput');
 const generatorLength = document.getElementById('generatorLength');
 const generatorLengthValue = document.getElementById('generatorLengthValue');
 const generatorUpper = document.getElementById('generatorUpper');
@@ -453,8 +454,45 @@ function renderTags(tags) {
   return tags.map((tag) => `<span class="tag-pill">${escapeHtml(tag)}</span>`).join('');
 }
 
+function roleForSharedVault(sharedVaultId) {
+  const targetId = Number(sharedVaultId || 0);
+  if (!targetId) return '';
+  const vault = sharedVaults.find((row) => Number(row.id) === targetId);
+  return String(vault?.role || '');
+}
+
+function canWriteSharedVault(sharedVaultId) {
+  return ['owner', 'editor'].includes(roleForSharedVault(sharedVaultId));
+}
+
+function canWriteItem(item) {
+  const sharedVaultId = Number(item?.shared_vault_id || 0);
+  if (!sharedVaultId) return true;
+  return canWriteSharedVault(sharedVaultId);
+}
+
+function sharedVaultLabel(sharedVaultId) {
+  const targetId = Number(sharedVaultId || 0);
+  if (!targetId) return 'Personal';
+  const vault = sharedVaults.find((row) => Number(row.id) === targetId);
+  return vault?.name ? `Shared: ${vault.name}` : `Shared Vault #${targetId}`;
+}
+
+function populateVaultTargetOptions() {
+  if (!sharedVaultItemInput) return;
+  const options = [
+    '<option value="0">Personal Vault</option>',
+    ...sharedVaults.map((vault) => {
+      const writable = ['owner', 'editor'].includes(String(vault.role || ''));
+      return `<option value="${vault.id}" ${writable ? '' : 'disabled'}>Shared: ${escapeHtml(vault.name)}${writable ? '' : ' (view only)'}</option>`;
+    }),
+  ];
+  sharedVaultItemInput.innerHTML = options.join('');
+}
+
 function renderItemActions(item) {
   const isSecureNote = normalizeItemType(item.item_type) === 'secure_note';
+  const canWrite = canWriteItem(item);
   const siteLabel = escapeHtml(item.site);
   const copyButtons = isSecureNote
     ? ''
@@ -462,11 +500,16 @@ function renderItemActions(item) {
         <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${siteLabel}">Copy User</button>
         <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${siteLabel}">Copy Pass</button>
       `;
+  const writeButtons = canWrite
+    ? `
+        <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${siteLabel}">Edit</button>
+        <button type="button" data-action="delete" data-id="${item.id}" class="action-danger" aria-label="Delete ${siteLabel}">Delete</button>
+      `
+    : '<button type="button" class="action-secondary" disabled title="Viewer access">View only</button>';
   return `
     ${copyButtons}
-    <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${siteLabel}">Edit</button>
+    ${writeButtons}
     <button type="button" data-action="history" data-id="${item.id}" class="action-neutral" aria-label="View history for ${siteLabel}">History</button>
-    <button type="button" data-action="delete" data-id="${item.id}" class="action-danger" aria-label="Delete ${siteLabel}">Delete</button>
   `;
 }
 
@@ -1106,9 +1149,11 @@ function renderTable() {
           class="favorite-btn ${item.is_favorite ? 'is-favorite' : ''}"
           aria-label="${item.is_favorite ? 'Remove favorite' : 'Mark as favorite'} for ${escapeHtml(item.site)}"
           title="${item.is_favorite ? 'Favorite' : 'Not favorite'}"
+          ${canWriteItem(item) ? '' : 'disabled'}
         >★</button>
       </td>
       <td>${escapeHtml(item.site)}</td>
+      <td>${escapeHtml(sharedVaultLabel(item.shared_vault_id))}</td>
       <td>${escapeHtml(formatItemType(item.item_type))}</td>
       <td>${escapeHtml(item.folder || '—')}</td>
       <td>${renderTags(item.tags)}</td>
@@ -1134,8 +1179,13 @@ function renderTable() {
               data-id="${item.id}"
               class="favorite-btn ${item.is_favorite ? 'is-favorite' : ''}"
               aria-label="${item.is_favorite ? 'Remove favorite' : 'Mark as favorite'} for ${escapeHtml(item.site)}"
+              ${canWriteItem(item) ? '' : 'disabled'}
             >★</button>
           </dd>
+        </div>
+        <div>
+          <dt>Vault</dt>
+          <dd>${escapeHtml(sharedVaultLabel(item.shared_vault_id))}</dd>
         </div>
         <div>
           <dt>Type</dt>
@@ -1170,6 +1220,7 @@ function renderTable() {
 function openModal(item = null, triggerElement = null) {
   modalError.textContent = '';
   modalReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
+  const sharedInput = sharedVaultItemInput;
 
   if (!item) {
     modalTitle.textContent = 'Add Entry';
@@ -1182,6 +1233,10 @@ function openModal(item = null, triggerElement = null) {
     if (folderInput) folderInput.value = '';
     if (tagsInput) tagsInput.value = '';
     if (favoriteInput) favoriteInput.checked = false;
+    if (sharedInput) {
+      sharedInput.value = '0';
+      sharedInput.disabled = false;
+    }
     if (generatorLength) generatorLength.value = '16';
     if (generatorLengthValue) generatorLengthValue.textContent = '16';
     if (generatorUpper) generatorUpper.checked = true;
@@ -1199,6 +1254,10 @@ function openModal(item = null, triggerElement = null) {
     if (folderInput) folderInput.value = item.folder || '';
     if (tagsInput) tagsInput.value = Array.isArray(item.tags) ? item.tags.join(', ') : '';
     if (favoriteInput) favoriteInput.checked = Boolean(item.is_favorite);
+    if (sharedInput) {
+      sharedInput.value = String(Number(item.shared_vault_id || 0));
+      sharedInput.disabled = true;
+    }
   }
 
   applyItemTypeUi(itemTypeInput?.value || 'login');
@@ -1391,6 +1450,8 @@ async function loadSharedVaults() {
   sharedVaults = Array.isArray(data?.shared_vaults) ? data.shared_vaults : [];
   renderSharedVaults();
   renderSharedVaultSelector();
+  populateVaultTargetOptions();
+  renderTable();
 }
 
 async function createSharedVault() {
@@ -1756,6 +1817,7 @@ vaultForm?.addEventListener('submit', async (e) => {
     folder: folderInput?.value.trim() || '',
     tags: parseTagsInput(tagsInput?.value || ''),
     is_favorite: favoriteInput?.checked ? 1 : 0,
+    shared_vault_id: Number(sharedVaultItemInput?.value || 0),
   };
 
   if (!payload.site) {
@@ -1854,11 +1916,19 @@ async function handleVaultAction(target) {
   }
 
   if (action === 'edit') {
+    if (!canWriteItem(item)) {
+      showToast('You have viewer access for this shared vault item.', 'error');
+      return;
+    }
     openModal(item, actionButton);
     return;
   }
 
   if (action === 'toggle-favorite') {
+    if (!canWriteItem(item)) {
+      showToast('You have viewer access for this shared vault item.', 'error');
+      return;
+    }
     await csrfReady;
     const nextValue = item.is_favorite ? 0 : 1;
     await requestApi('../api/vault/toggle-favorite.php', 'POST', { id, is_favorite: nextValue });
@@ -1873,6 +1943,10 @@ async function handleVaultAction(target) {
   }
 
   if (action === 'delete') {
+    if (!canWriteItem(item)) {
+      showToast('You have viewer access for this shared vault item.', 'error');
+      return;
+    }
     const confirmed = window.confirm(`Delete saved password for ${item.site}?`);
     if (!confirmed) return;
 
