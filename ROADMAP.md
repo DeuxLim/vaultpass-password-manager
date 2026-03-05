@@ -343,7 +343,7 @@ Tasks:
 - ✅ Popup helper to open local extension fixture page quickly.
 Acceptance:
 - ✅ Fixture coverage and extension logic updated for multi-form + dynamic injection cases.
-- ⬜ Manual execution: Save + autofill works on defined test matrix.
+- ⬜ Manual execution: Save + autofill works on defined test matrix (runbook: `docs/extension-manual-qa.md`).
 
 ---
 
