@@ -177,7 +177,7 @@ Scope:
 
 Exit criteria:
 - Launch checklist complete.
-- Support and reliability SLAs defined.
+- ✅ Support and reliability SLAs defined (`docs/support-reliability-sla.md`).
 
 ---
 

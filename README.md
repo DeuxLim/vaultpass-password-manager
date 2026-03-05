@@ -12,6 +12,7 @@ VaultPass is a lightweight password manager built on a vanilla stack:
 - Email (Resend): `docs/email-resend.md`
 - Analytics: `docs/analytics.md`
 - Pricing & billing: `docs/pricing-tiers.md`, `docs/billing-integration.md`
+- Support & reliability SLAs: `docs/support-reliability-sla.md`
 - Production readiness: `docs/production-readiness-checklist.md`
 - Launch checklist: `docs/launch-readiness-checklist.md`
 
