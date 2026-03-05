@@ -171,7 +171,7 @@ Scope:
 - Onboarding, email lifecycle, support workflows.
 - Product analytics (privacy-preserving).
 - Incident response runbooks and backups.
-- Release management and changelog discipline.
+- ✅ Release management and changelog discipline (`docs/release-process.md`, `CHANGELOG.md`).
 
 Exit criteria:
 - Launch checklist complete.

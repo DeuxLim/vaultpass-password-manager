@@ -18,7 +18,7 @@ Last updated: 2026-02-23
 - [ ] Backup and restore test completed with production-like dataset.
 
 ## Database & Operations
-- [ ] All SQL migrations applied (001-007).
+- [ ] All SQL migrations applied (001-011).
 - [ ] Daily backup schedule configured and test restore successful.
 - [ ] Error log rotation configured and retention policy documented.
 - [ ] Incident contacts and on-call rotation documented.
@@ -29,7 +29,7 @@ Last updated: 2026-02-23
 - [ ] Account recovery and 2FA lockout SOP approved.
 
 ## Release Management
-- [ ] Versioning/changelog process defined.
+- [ ] Versioning/changelog process defined (`docs/release-process.md`, `CHANGELOG.md`).
 - [ ] Release candidate smoke test passed.
 - [ ] Rollback plan tested.
 - [ ] Launch go/no-go signoff captured.
