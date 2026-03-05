@@ -217,6 +217,8 @@
       <select id="itemTypeInput">
         <option value="login">Login</option>
         <option value="secure_note">Secure Note</option>
+        <option value="identity">Identity</option>
+        <option value="payment_card">Payment Card</option>
       </select>
 
       <div id="usernameFieldGroup">
@@ -250,8 +252,70 @@
         </div>
       </details>
 
-      <label for="notesInput">Notes</label>
-      <textarea id="notesInput" rows="3" placeholder="Optional notes"></textarea>
+      <section id="identityFieldGroup" class="structured-field-group" hidden aria-label="Identity fields">
+        <h3>Identity Details</h3>
+        <div class="structured-grid">
+          <label for="identityFullName">Full name</label>
+          <input type="text" id="identityFullName" autocomplete="name">
+
+          <label for="identityEmail">Email</label>
+          <input type="email" id="identityEmail" autocomplete="email">
+
+          <label for="identityPhone">Phone</label>
+          <input type="tel" id="identityPhone" autocomplete="tel">
+
+          <label for="identityCompany">Company</label>
+          <input type="text" id="identityCompany" autocomplete="organization">
+
+          <label for="identityAddress1">Address line 1</label>
+          <input type="text" id="identityAddress1" autocomplete="address-line1">
+
+          <label for="identityAddress2">Address line 2</label>
+          <input type="text" id="identityAddress2" autocomplete="address-line2">
+
+          <label for="identityCity">City</label>
+          <input type="text" id="identityCity" autocomplete="address-level2">
+
+          <label for="identityState">State/Region</label>
+          <input type="text" id="identityState" autocomplete="address-level1">
+
+          <label for="identityZip">ZIP/Postal</label>
+          <input type="text" id="identityZip" autocomplete="postal-code">
+
+          <label for="identityCountry">Country</label>
+          <input type="text" id="identityCountry" autocomplete="country-name">
+        </div>
+        <p class="structured-help">Use Copy buttons in the vault list to paste into web forms.</p>
+      </section>
+
+      <section id="paymentFieldGroup" class="structured-field-group" hidden aria-label="Payment card fields">
+        <h3>Payment Card</h3>
+        <div class="structured-grid">
+          <label for="paymentCardholder">Cardholder name</label>
+          <input type="text" id="paymentCardholder" autocomplete="cc-name">
+
+          <label for="paymentNumber">Card number</label>
+          <input type="text" id="paymentNumber" inputmode="numeric" autocomplete="cc-number">
+
+          <label for="paymentExpMonth">Exp month (MM)</label>
+          <input type="text" id="paymentExpMonth" inputmode="numeric" autocomplete="cc-exp-month">
+
+          <label for="paymentExpYear">Exp year (YYYY)</label>
+          <input type="text" id="paymentExpYear" inputmode="numeric" autocomplete="cc-exp-year">
+
+          <label for="paymentCvc">CVC</label>
+          <input type="text" id="paymentCvc" inputmode="numeric" autocomplete="cc-csc">
+
+          <label for="paymentZip">Billing ZIP/Postal</label>
+          <input type="text" id="paymentZip" autocomplete="postal-code">
+        </div>
+        <p class="structured-help">CVC storage may not be accepted by all issuers. Use at your own risk.</p>
+      </section>
+
+      <div id="notesFieldGroup">
+        <label for="notesInput">Notes</label>
+        <textarea id="notesInput" rows="3" placeholder="Optional notes"></textarea>
+      </div>
 
       <label for="folderInput">Folder</label>
       <input type="text" id="folderInput" placeholder="Personal, Work, Finance">

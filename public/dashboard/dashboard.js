@@ -67,6 +67,25 @@ const notesInput = document.getElementById('notesInput');
 const passwordStrengthLabel = document.getElementById('passwordStrengthLabel');
 const passwordStrengthFill = document.getElementById('passwordStrengthFill');
 const generatePasswordBtn = document.getElementById('generatePasswordBtn');
+const identityFieldGroup = document.getElementById('identityFieldGroup');
+const identityFullName = document.getElementById('identityFullName');
+const identityEmail = document.getElementById('identityEmail');
+const identityPhone = document.getElementById('identityPhone');
+const identityCompany = document.getElementById('identityCompany');
+const identityAddress1 = document.getElementById('identityAddress1');
+const identityAddress2 = document.getElementById('identityAddress2');
+const identityCity = document.getElementById('identityCity');
+const identityState = document.getElementById('identityState');
+const identityZip = document.getElementById('identityZip');
+const identityCountry = document.getElementById('identityCountry');
+const paymentFieldGroup = document.getElementById('paymentFieldGroup');
+const paymentCardholder = document.getElementById('paymentCardholder');
+const paymentNumber = document.getElementById('paymentNumber');
+const paymentExpMonth = document.getElementById('paymentExpMonth');
+const paymentExpYear = document.getElementById('paymentExpYear');
+const paymentCvc = document.getElementById('paymentCvc');
+const paymentZip = document.getElementById('paymentZip');
+const notesFieldGroup = document.getElementById('notesFieldGroup');
 const folderInput = document.getElementById('folderInput');
 const tagsInput = document.getElementById('tagsInput');
 const favoriteInput = document.getElementById('favoriteInput');
@@ -410,38 +429,52 @@ async function decryptItemsIfNeeded(sourceItems) {
 }
 
 function normalizeItemType(value) {
-  return String(value || '').trim() === 'secure_note' ? 'secure_note' : 'login';
+  const raw = String(value || '').trim();
+  if (raw === 'secure_note') return 'secure_note';
+  if (raw === 'identity') return 'identity';
+  if (raw === 'payment_card') return 'payment_card';
+  return 'login';
 }
 
 function formatItemType(value) {
-  return normalizeItemType(value) === 'secure_note' ? 'Secure Note' : 'Login';
+  const type = normalizeItemType(value);
+  if (type === 'secure_note') return 'Secure Note';
+  if (type === 'identity') return 'Identity';
+  if (type === 'payment_card') return 'Payment Card';
+  return 'Login';
 }
 
 function applyItemTypeUi(value) {
   const type = normalizeItemType(value);
   const isSecureNote = type === 'secure_note';
+  const isIdentity = type === 'identity';
+  const isPayment = type === 'payment_card';
+  const isStructured = isIdentity || isPayment;
 
   if (siteInput) {
-    siteInput.placeholder = isSecureNote ? 'Secure note title' : 'example.com';
+    siteInput.placeholder = isSecureNote ? 'Secure note title' : (isStructured ? 'Profile name' : 'example.com');
   }
   if (notesInput) {
-    notesInput.placeholder = isSecureNote ? 'Write your secure note' : 'Optional notes';
-    notesInput.required = isSecureNote;
+    notesInput.placeholder = isSecureNote ? 'Write your secure note' : (isStructured ? 'Profile details' : 'Optional notes');
+    notesInput.required = isSecureNote || isStructured;
   }
+  if (identityFieldGroup) identityFieldGroup.hidden = !isIdentity;
+  if (paymentFieldGroup) paymentFieldGroup.hidden = !isPayment;
+  if (notesFieldGroup) notesFieldGroup.hidden = isStructured;
   if (usernameFieldGroup) {
-    usernameFieldGroup.hidden = isSecureNote;
+    usernameFieldGroup.hidden = isSecureNote || isStructured;
   }
   if (passwordFieldGroup) {
-    passwordFieldGroup.hidden = isSecureNote;
+    passwordFieldGroup.hidden = isSecureNote || isStructured;
   }
   if (generatorPanel) {
-    generatorPanel.hidden = isSecureNote;
+    generatorPanel.hidden = isSecureNote || isStructured;
   }
   if (usernameInput) {
-    usernameInput.required = !isSecureNote;
+    usernameInput.required = type === 'login';
   }
   if (passwordInput) {
-    passwordInput.required = !isSecureNote;
+    passwordInput.required = type === 'login';
   }
 }
 
@@ -449,7 +482,7 @@ const HEALTH_WEAK_SCORE_THRESHOLD = 60;
 const HEALTH_OLD_THRESHOLD_DAYS = 180;
 
 function isLoginItem(item) {
-  return normalizeItemType(item?.item_type) !== 'secure_note';
+  return normalizeItemType(item?.item_type) === 'login';
 }
 
 function buildPasswordCounts(sourceItems) {
@@ -569,16 +602,135 @@ function populateVaultTargetOptions() {
   sharedVaultItemInput.innerHTML = options.join('');
 }
 
+function safeJsonParse(value) {
+  try {
+    return JSON.parse(String(value || ''));
+  } catch (_error) {
+    return null;
+  }
+}
+
+function structuredDataForItem(item) {
+  const type = normalizeItemType(item?.item_type);
+  if (!['identity', 'payment_card'].includes(type)) return null;
+  const parsed = safeJsonParse(item?.notes || '');
+  if (!parsed || typeof parsed !== 'object') return null;
+  const schema = String(parsed.schema || '');
+  if (type === 'identity' && schema === 'vp_identity_v1') return parsed;
+  if (type === 'payment_card' && schema === 'vp_payment_card_v1') return parsed;
+  return null;
+}
+
+function identityNotesPayload() {
+  return {
+    schema: 'vp_identity_v1',
+    full_name: String(identityFullName?.value || '').trim(),
+    email: String(identityEmail?.value || '').trim(),
+    phone: String(identityPhone?.value || '').trim(),
+    company: String(identityCompany?.value || '').trim(),
+    address1: String(identityAddress1?.value || '').trim(),
+    address2: String(identityAddress2?.value || '').trim(),
+    city: String(identityCity?.value || '').trim(),
+    state: String(identityState?.value || '').trim(),
+    zip: String(identityZip?.value || '').trim(),
+    country: String(identityCountry?.value || '').trim(),
+  };
+}
+
+function paymentNotesPayload() {
+  return {
+    schema: 'vp_payment_card_v1',
+    cardholder: String(paymentCardholder?.value || '').trim(),
+    number: String(paymentNumber?.value || '').trim().replace(/\s+/g, ''),
+    exp_month: String(paymentExpMonth?.value || '').trim(),
+    exp_year: String(paymentExpYear?.value || '').trim(),
+    cvc: String(paymentCvc?.value || '').trim(),
+    billing_zip: String(paymentZip?.value || '').trim(),
+  };
+}
+
+function clearIdentityFields() {
+  if (identityFullName) identityFullName.value = '';
+  if (identityEmail) identityEmail.value = '';
+  if (identityPhone) identityPhone.value = '';
+  if (identityCompany) identityCompany.value = '';
+  if (identityAddress1) identityAddress1.value = '';
+  if (identityAddress2) identityAddress2.value = '';
+  if (identityCity) identityCity.value = '';
+  if (identityState) identityState.value = '';
+  if (identityZip) identityZip.value = '';
+  if (identityCountry) identityCountry.value = '';
+}
+
+function clearPaymentFields() {
+  if (paymentCardholder) paymentCardholder.value = '';
+  if (paymentNumber) paymentNumber.value = '';
+  if (paymentExpMonth) paymentExpMonth.value = '';
+  if (paymentExpYear) paymentExpYear.value = '';
+  if (paymentCvc) paymentCvc.value = '';
+  if (paymentZip) paymentZip.value = '';
+}
+
+function populateStructuredFields(type, notes) {
+  const parsed = safeJsonParse(notes);
+  if (!parsed || typeof parsed !== 'object') return;
+
+  if (type === 'identity' && String(parsed.schema || '') === 'vp_identity_v1') {
+    if (identityFullName) identityFullName.value = String(parsed.full_name || '');
+    if (identityEmail) identityEmail.value = String(parsed.email || '');
+    if (identityPhone) identityPhone.value = String(parsed.phone || '');
+    if (identityCompany) identityCompany.value = String(parsed.company || '');
+    if (identityAddress1) identityAddress1.value = String(parsed.address1 || '');
+    if (identityAddress2) identityAddress2.value = String(parsed.address2 || '');
+    if (identityCity) identityCity.value = String(parsed.city || '');
+    if (identityState) identityState.value = String(parsed.state || '');
+    if (identityZip) identityZip.value = String(parsed.zip || '');
+    if (identityCountry) identityCountry.value = String(parsed.country || '');
+  }
+
+  if (type === 'payment_card' && String(parsed.schema || '') === 'vp_payment_card_v1') {
+    if (paymentCardholder) paymentCardholder.value = String(parsed.cardholder || '');
+    if (paymentNumber) paymentNumber.value = String(parsed.number || '');
+    if (paymentExpMonth) paymentExpMonth.value = String(parsed.exp_month || '');
+    if (paymentExpYear) paymentExpYear.value = String(parsed.exp_year || '');
+    if (paymentCvc) paymentCvc.value = String(parsed.cvc || '');
+    if (paymentZip) paymentZip.value = String(parsed.billing_zip || '');
+  }
+}
+
+function hasAnyStructuredValue(payload) {
+  return Object.entries(payload).some(([key, value]) => key !== 'schema' && String(value || '').trim() !== '');
+}
+
+function structuredCopyText(payload) {
+  if (!payload || typeof payload !== 'object') return '';
+  const lines = [];
+  Object.entries(payload).forEach(([key, value]) => {
+    if (key === 'schema') return;
+    const text = String(value || '').trim();
+    if (!text) return;
+    lines.push(`${key.replaceAll('_', ' ')}: ${text}`);
+  });
+  return lines.join('\n');
+}
+
 function renderItemActions(item) {
-  const isSecureNote = normalizeItemType(item.item_type) === 'secure_note';
+  const type = normalizeItemType(item.item_type);
+  const isSecureNote = type === 'secure_note';
+  const isIdentity = type === 'identity';
+  const isPayment = type === 'payment_card';
   const canWrite = canWriteItem(item);
   const siteLabel = escapeHtml(item.site);
   const copyButtons = isSecureNote
     ? ''
-    : `
-        <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${siteLabel}">Copy User</button>
-        <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${siteLabel}">Copy Pass</button>
-      `;
+    : (isIdentity || isPayment)
+      ? `
+          <button type="button" data-action="copy-structured" data-id="${item.id}" class="action-secondary" aria-label="Copy profile details for ${siteLabel}">Copy Details</button>
+        `
+      : `
+          <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${siteLabel}">Copy User</button>
+          <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${siteLabel}">Copy Pass</button>
+        `;
   const writeButtons = canWrite
     ? `
         <button type="button" data-action="edit" data-id="${item.id}" aria-label="Edit ${siteLabel}">Edit</button>
@@ -1083,7 +1235,7 @@ async function loadHistory(itemId) {
           <p class="history-entry-source">${escapeHtml(version.source || 'update')}</p>
         </div>
         <p class="history-entry-meta">Type: ${escapeHtml(formatItemType(itemType))}</p>
-        <p class="history-entry-meta">Username: ${escapeHtml(itemType === 'secure_note' ? '—' : version.username)}</p>
+        <p class="history-entry-meta">Username: ${escapeHtml(itemType === 'login' ? version.username : '—')}</p>
         <p class="history-entry-meta">Site: ${escapeHtml(version.site)}</p>
         <p class="history-entry-meta">Folder: ${escapeHtml(version.folder || '—')}</p>
         <p class="history-entry-meta">Tags: ${escapeHtml(Array.isArray(version.tags) && version.tags.length > 0 ? version.tags.join(', ') : '—')}</p>
@@ -1257,8 +1409,8 @@ function renderTable() {
       <td>${escapeHtml(formatItemType(item.item_type))}</td>
       <td>${escapeHtml(item.folder || '—')}</td>
       <td>${renderTags(item.tags)}</td>
-      <td>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.username)}</td>
-      <td>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.password)}</td>
+      <td>${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.username : '—')}</td>
+      <td>${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.password : '—')}</td>
       <td>${escapeHtml(item.notes || '')}</td>
       <td class="actions">${renderItemActions(item)}</td>
     </tr>
@@ -1301,11 +1453,11 @@ function renderTable() {
         </div>
         <div>
           <dt>Username</dt>
-          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.username)}</dd>
+          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.username : '—')}</dd>
         </div>
         <div>
           <dt>Password</dt>
-          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'secure_note' ? '—' : item.password)}</dd>
+          <dd>${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.password : '—')}</dd>
         </div>
         <div>
           <dt>Notes</dt>
@@ -1330,6 +1482,8 @@ function openModal(item = null, triggerElement = null) {
     usernameInput.value = '';
     passwordInput.value = '';
     notesInput.value = '';
+    clearIdentityFields();
+    clearPaymentFields();
     if (folderInput) folderInput.value = '';
     if (tagsInput) tagsInput.value = '';
     if (favoriteInput) favoriteInput.checked = false;
@@ -1351,6 +1505,9 @@ function openModal(item = null, triggerElement = null) {
     usernameInput.value = item.username;
     passwordInput.value = item.password;
     notesInput.value = item.notes || '';
+    clearIdentityFields();
+    clearPaymentFields();
+    populateStructuredFields(normalizeItemType(item.item_type), item.notes || '');
     if (folderInput) folderInput.value = item.folder || '';
     if (tagsInput) tagsInput.value = Array.isArray(item.tags) ? item.tags.join(', ') : '';
     if (favoriteInput) favoriteInput.checked = Boolean(item.is_favorite);
@@ -1906,8 +2063,8 @@ async function openEmergencySnapshot(requestId) {
           <p class="history-entry-time">${escapeHtml(item.site || 'Untitled')}</p>
           <p class="history-entry-source">${escapeHtml(formatItemType(item.item_type))}</p>
         </div>
-        <p class="history-entry-meta">Username: ${escapeHtml(item.item_type === 'secure_note' ? '—' : item.username || '')}</p>
-        <p class="history-entry-meta">Password: ${escapeHtml(item.item_type === 'secure_note' ? '—' : item.password || '')}</p>
+        <p class="history-entry-meta">Username: ${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.username || '' : '—')}</p>
+        <p class="history-entry-meta">Password: ${escapeHtml(normalizeItemType(item.item_type) === 'login' ? item.password || '' : '—')}</p>
         <p class="history-entry-meta">Notes: ${escapeHtml(item.notes || '')}</p>
       </article>
     `).join('');
@@ -2012,8 +2169,25 @@ themeToggle?.addEventListener('click', () => {
 });
 passwordInput?.addEventListener('input', updatePasswordStrength);
 itemTypeInput?.addEventListener('change', () => {
-  applyItemTypeUi(itemTypeInput.value);
-  if (normalizeItemType(itemTypeInput.value) === 'secure_note') {
+  const nextType = normalizeItemType(itemTypeInput.value);
+  applyItemTypeUi(nextType);
+
+  if (nextType === 'identity') {
+    notesInput.value = '';
+    clearPaymentFields();
+    updatePasswordStrength();
+    return;
+  }
+  if (nextType === 'payment_card') {
+    notesInput.value = '';
+    clearIdentityFields();
+    updatePasswordStrength();
+    return;
+  }
+
+  if (nextType === 'secure_note') {
+    clearIdentityFields();
+    clearPaymentFields();
     passwordStrengthLabel.textContent = 'Strength: —';
     passwordStrengthFill.style.width = '0%';
     passwordStrengthFill.style.background = '#c8ccd5';
@@ -2232,12 +2406,40 @@ vaultForm?.addEventListener('submit', async (e) => {
   e.preventDefault();
   modalError.textContent = '';
 
+  const itemType = normalizeItemType(itemTypeInput?.value || 'login');
+  let usernameValue = usernameInput.value.trim();
+  let passwordValue = passwordInput.value;
+  let notesValue = notesInput.value.trim();
+
+  if (itemType === 'identity') {
+    const identity = identityNotesPayload();
+    if (!hasAnyStructuredValue(identity) || !identity.full_name) {
+      modalError.textContent = 'Full name is required for identity profiles.';
+      return;
+    }
+    usernameValue = '';
+    passwordValue = '';
+    notesValue = JSON.stringify(identity);
+  } else if (itemType === 'payment_card') {
+    const payment = paymentNotesPayload();
+    const expMonth = String(payment.exp_month || '').padStart(2, '0');
+    if (paymentExpMonth) paymentExpMonth.value = expMonth;
+    payment.exp_month = expMonth;
+    if (!hasAnyStructuredValue(payment) || !payment.number || !payment.exp_month || !payment.exp_year) {
+      modalError.textContent = 'Card number and expiration are required for payment cards.';
+      return;
+    }
+    usernameValue = '';
+    passwordValue = '';
+    notesValue = JSON.stringify(payment);
+  }
+
   const payload = {
     site: siteInput.value.trim(),
-    item_type: normalizeItemType(itemTypeInput?.value || 'login'),
-    username: usernameInput.value.trim(),
-    password: passwordInput.value,
-    notes: notesInput.value.trim(),
+    item_type: itemType,
+    username: usernameValue,
+    password: passwordValue,
+    notes: notesValue,
     folder: folderInput?.value.trim() || '',
     tags: parseTagsInput(tagsInput?.value || ''),
     is_favorite: favoriteInput?.checked ? 1 : 0,
@@ -2256,6 +2458,11 @@ vaultForm?.addEventListener('submit', async (e) => {
 
   if (payload.item_type === 'secure_note' && !payload.notes) {
     modalError.textContent = 'Secure note content is required.';
+    return;
+  }
+
+  if ((payload.item_type === 'identity' || payload.item_type === 'payment_card') && !payload.notes) {
+    modalError.textContent = 'Profile details are required.';
     return;
   }
 
@@ -2312,8 +2519,8 @@ async function handleVaultAction(target) {
   if (!item) return;
 
   if (action === 'copy-user') {
-    if (normalizeItemType(item.item_type) === 'secure_note') {
-      showToast('Secure note entries do not have usernames.', 'error');
+    if (normalizeItemType(item.item_type) !== 'login') {
+      showToast('This entry type does not have username/password fields.', 'error');
       return;
     }
     try {
@@ -2326,8 +2533,8 @@ async function handleVaultAction(target) {
   }
 
   if (action === 'copy-pass') {
-    if (normalizeItemType(item.item_type) === 'secure_note') {
-      showToast('Secure note entries do not have passwords.', 'error');
+    if (normalizeItemType(item.item_type) !== 'login') {
+      showToast('This entry type does not have username/password fields.', 'error');
       return;
     }
     try {
@@ -2335,6 +2542,26 @@ async function handleVaultAction(target) {
       showToast(`Password copied for ${item.site}.`);
     } catch (_error) {
       showToast('Unable to copy password.', 'error');
+    }
+    return;
+  }
+
+  if (action === 'copy-structured') {
+    const structured = structuredDataForItem(item);
+    if (!structured) {
+      showToast('No structured profile details found.', 'error');
+      return;
+    }
+    const text = structuredCopyText(structured);
+    if (!text) {
+      showToast('Profile details are empty.', 'error');
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(text);
+      showToast(`Details copied for ${item.site}.`);
+    } catch (_error) {
+      showToast('Unable to copy details.', 'error');
     }
     return;
   }

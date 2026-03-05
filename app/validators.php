@@ -5,7 +5,10 @@ declare(strict_types=1);
 function normalize_item_type(mixed $value): string
 {
     $raw = strtolower(trim((string)$value));
-    return $raw === 'secure_note' ? 'secure_note' : 'login';
+    if (in_array($raw, ['login', 'secure_note', 'identity', 'payment_card'], true)) {
+        return $raw;
+    }
+    return 'login';
 }
 
 function normalize_email_input(mixed $value): string
@@ -113,6 +116,10 @@ function validate_vault_item_payload(array $item): ?string
 
     if ($itemType === 'secure_note' && $notes === '') {
         return 'Secure note content is required';
+    }
+
+    if (in_array($itemType, ['identity', 'payment_card'], true) && $notes === '') {
+        return 'Profile details are required';
     }
 
     return null;

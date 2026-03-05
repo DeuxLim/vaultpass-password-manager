@@ -636,6 +636,32 @@ td.actions button[data-action="edit"]:hover,
 .favorite-toggle-input { display: flex; align-items: center; gap: 8px; }
 .favorite-toggle-input input[type="checkbox"] { width: 16px; height: 16px; min-height: 16px; }
 
+.structured-field-group {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  background: var(--surface-muted);
+  display: grid;
+  gap: 10px;
+}
+
+.structured-field-group h3 { margin: 0; font-size: 14px; letter-spacing: -0.01em; }
+
+.structured-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.structured-help { margin: 0; font-size: 12px; color: var(--muted); }
+
+@media (min-width: 720px) {
+  .structured-grid {
+    grid-template-columns: 1fr 1fr;
+    column-gap: 10px;
+  }
+}
+
 .history-item-label,
 .session-entry-meta,
 .event-meta { margin: 0; color: var(--muted); font-size: 13px; }

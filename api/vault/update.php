@@ -36,8 +36,8 @@ if ($supportsSharedVaultId && !shared_vaults_available()) {
     $supportsSharedVaultId = false;
 }
 
-if ($itemType === 'secure_note' && !$supportsItemType) {
-    json_response(['ok' => false, 'error' => 'Secure notes require migration 006 (item type support)'], 409);
+if ($itemType !== 'login' && !$supportsItemType) {
+    json_response(['ok' => false, 'error' => 'Non-login entries require migration 006 (item type support)'], 409);
 }
 
 $snapshotId = 0;

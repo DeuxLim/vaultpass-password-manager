@@ -29,8 +29,8 @@ $pdo = db();
 $supportsItemType = db_column_exists('vault_items', 'item_type');
 $supportsSharedVaultId = db_column_exists('vault_items', 'shared_vault_id');
 
-if ($itemType === 'secure_note' && !$supportsItemType) {
-    json_response(['ok' => false, 'error' => 'Secure notes require migration 006 (item type support)'], 409);
+if ($itemType !== 'login' && !$supportsItemType) {
+    json_response(['ok' => false, 'error' => 'Non-login entries require migration 006 (item type support)'], 409);
 }
 if ($sharedVaultId > 0 && !$supportsSharedVaultId) {
     json_response(['ok' => false, 'error' => 'Shared vault items require migration 009 (shared vault item binding)'], 409);
