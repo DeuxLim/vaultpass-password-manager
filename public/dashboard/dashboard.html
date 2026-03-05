@@ -41,23 +41,27 @@
         </div>
       </section>
 
-      <section class="health-panel" aria-label="Vault health overview">
-      <article class="health-card">
-        <p class="health-label">Total entries</p>
-        <p id="healthTotal" class="health-value">0</p>
-      </article>
-      <article class="health-card">
-        <p class="health-label">Weak passwords</p>
-        <p id="healthWeak" class="health-value is-weak">0</p>
-      </article>
-      <article class="health-card">
-        <p class="health-label">Reused passwords</p>
-        <p id="healthReused" class="health-value is-warning">0</p>
-      </article>
-      <article class="health-card">
-        <p class="health-label">Old (&gt; 180 days)</p>
-        <p id="healthOld" class="health-value is-old">0</p>
-      </article>
+      <section id="healthPanel" class="health-panel" aria-label="Vault health overview">
+        <button type="button" class="health-card" data-health-filter="all" aria-pressed="true">
+          <p class="health-label">Total entries</p>
+          <p id="healthTotal" class="health-value">0</p>
+        </button>
+        <button type="button" class="health-card" data-health-filter="weak" aria-pressed="false">
+          <p class="health-label">Weak passwords</p>
+          <p id="healthWeak" class="health-value is-weak">0</p>
+        </button>
+        <button type="button" class="health-card" data-health-filter="reused" aria-pressed="false">
+          <p class="health-label">Reused passwords</p>
+          <p id="healthReused" class="health-value is-warning">0</p>
+        </button>
+        <button type="button" class="health-card" data-health-filter="old" aria-pressed="false">
+          <p class="health-label">Old (&gt; 180 days)</p>
+          <p id="healthOld" class="health-value is-old">0</p>
+        </button>
+      </section>
+      <section id="healthFilterBanner" class="health-filter-banner" hidden aria-live="polite">
+        <p id="healthFilterText" class="health-filter-text"></p>
+        <button type="button" id="healthFilterClearBtn" class="btn btn-ghost">Clear</button>
       </section>
 
       <section id="sharedVaultsPanel" class="shared-vaults-panel" aria-label="Shared vaults">

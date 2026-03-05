@@ -232,10 +232,26 @@ h1 {
 }
 
 .health-card {
+  appearance: none;
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  font: inherit;
   border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--surface-muted);
   padding: 12px;
+}
+.health-card:hover {
+  border-color: rgba(64, 92, 240, 0.45);
+}
+.health-card[aria-pressed="true"] {
+  border-color: rgba(64, 92, 240, 0.75);
+  box-shadow: 0 0 0 3px rgba(64, 92, 240, 0.12);
+}
+.health-card:focus-visible {
+  outline: 3px solid rgba(64, 92, 240, 0.35);
+  outline-offset: 2px;
 }
 .health-label {
   margin: 0;
@@ -253,6 +269,24 @@ h1 {
 .health-value.is-weak { color: var(--danger); }
 .health-value.is-warning { color: var(--warning); }
 .health-value.is-old { color: var(--primary); }
+
+.health-filter-banner {
+  margin: 0 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.health-filter-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 
 .shared-vaults-panel {
   padding: 14px;

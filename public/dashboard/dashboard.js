@@ -81,6 +81,10 @@ const healthTotal = document.getElementById('healthTotal');
 const healthWeak = document.getElementById('healthWeak');
 const healthReused = document.getElementById('healthReused');
 const healthOld = document.getElementById('healthOld');
+const healthPanel = document.getElementById('healthPanel');
+const healthFilterBanner = document.getElementById('healthFilterBanner');
+const healthFilterText = document.getElementById('healthFilterText');
+const healthFilterClearBtn = document.getElementById('healthFilterClearBtn');
 const sharedVaultForm = document.getElementById('sharedVaultForm');
 const sharedVaultNameInput = document.getElementById('sharedVaultNameInput');
 const sharedVaultError = document.getElementById('sharedVaultError');
@@ -115,6 +119,7 @@ const emergencySnapshotList = document.getElementById('emergencySnapshotList');
 const emergencySnapshotCloseBtn = document.getElementById('emergencySnapshotCloseBtn');
 
 let items = [];
+let healthFilterMode = 'all';
 let historyItemId = 0;
 let modalReturnFocus = null;
 let historyReturnFocus = null;
@@ -440,12 +445,46 @@ function applyItemTypeUi(value) {
   }
 }
 
+const HEALTH_WEAK_SCORE_THRESHOLD = 60;
+const HEALTH_OLD_THRESHOLD_DAYS = 180;
+
+function isLoginItem(item) {
+  return normalizeItemType(item?.item_type) !== 'secure_note';
+}
+
+function buildPasswordCounts(sourceItems) {
+  const passwordCounts = new Map();
+  sourceItems.forEach((item) => {
+    if (!isLoginItem(item)) return;
+    const value = String(item.password || '');
+    if (!value) return;
+    passwordCounts.set(value, (passwordCounts.get(value) || 0) + 1);
+  });
+  return passwordCounts;
+}
+
+function isOldItem(item, thresholdDays = HEALTH_OLD_THRESHOLD_DAYS) {
+  if (!isLoginItem(item)) return false;
+  const updatedAt = new Date(item.updated_at).getTime();
+  if (Number.isNaN(updatedAt)) return false;
+  const ageDays = (Date.now() - updatedAt) / (1000 * 60 * 60 * 24);
+  return ageDays >= thresholdDays;
+}
+
+function healthFilterLabel(mode) {
+  if (mode === 'weak') return 'Weak passwords';
+  if (mode === 'reused') return 'Reused passwords';
+  if (mode === 'old') return `Old passwords (>${HEALTH_OLD_THRESHOLD_DAYS} days)`;
+  return 'All entries';
+}
+
 function filteredItems() {
   const term = (searchInput?.value || '').toLowerCase().trim();
   const favoriteMode = favoriteFilter?.value || 'all';
   const folderMode = folderFilter?.value || 'all';
   const sortMode = sortFilter?.value || 'updated_desc';
 
+  const passwordCounts = healthFilterMode === 'reused' ? buildPasswordCounts(items) : null;
   let filtered = items.filter((item) => {
     if (favoriteMode === 'favorites' && !item.is_favorite) return false;
     if (favoriteMode === 'non-favorites' && item.is_favorite) return false;
@@ -456,6 +495,24 @@ function filteredItems() {
     const haystack = `${item.site} ${item.username} ${item.folder || ''} ${tagsText} ${item.notes || ''}`.toLowerCase();
     return haystack.includes(term);
   });
+
+  if (healthFilterMode !== 'all') {
+    filtered = filtered.filter((item) => {
+      if (!isLoginItem(item)) return false;
+      if (healthFilterMode === 'weak') {
+        return scorePassword(item.password) < HEALTH_WEAK_SCORE_THRESHOLD;
+      }
+      if (healthFilterMode === 'reused') {
+        const value = String(item.password || '');
+        if (!value) return false;
+        return (passwordCounts?.get(value) || 0) > 1;
+      }
+      if (healthFilterMode === 'old') {
+        return isOldItem(item);
+      }
+      return true;
+    });
+  }
 
   filtered = [...filtered];
   if (sortMode === 'site_asc') {
@@ -565,30 +622,48 @@ function populateFolderFilter() {
 
 function renderHealthSummary() {
   const total = items.length;
-  const loginItems = items.filter((item) => normalizeItemType(item.item_type) !== 'secure_note');
-  const weak = loginItems.filter((item) => scorePassword(item.password) < 60).length;
+  const loginItems = items.filter((item) => isLoginItem(item));
+  const weak = loginItems.filter((item) => scorePassword(item.password) < HEALTH_WEAK_SCORE_THRESHOLD).length;
 
-  const passwordCounts = new Map();
-  loginItems.forEach((item) => {
-    const value = String(item.password || '');
-    if (!value) return;
-    passwordCounts.set(value, (passwordCounts.get(value) || 0) + 1);
-  });
+  const passwordCounts = buildPasswordCounts(loginItems);
   const reused = Array.from(passwordCounts.values()).filter((count) => count > 1).reduce((sum, count) => sum + count, 0);
 
-  const now = Date.now();
-  const oldThresholdDays = 180;
-  const old = items.filter((item) => {
-    const updatedAt = new Date(item.updated_at).getTime();
-    if (Number.isNaN(updatedAt)) return false;
-    const ageDays = (now - updatedAt) / (1000 * 60 * 60 * 24);
-    return ageDays >= oldThresholdDays;
-  }).length;
+  const old = loginItems.filter((item) => isOldItem(item)).length;
 
   if (healthTotal) healthTotal.textContent = String(total);
   if (healthWeak) healthWeak.textContent = String(weak);
   if (healthReused) healthReused.textContent = String(reused);
   if (healthOld) healthOld.textContent = String(old);
+}
+
+function renderHealthFilterUi(visibleCount = null) {
+  if (healthPanel) {
+    const buttons = Array.from(healthPanel.querySelectorAll('button[data-health-filter]'));
+    buttons.forEach((button) => {
+      const mode = String(button.dataset.healthFilter || 'all');
+      button.setAttribute('aria-pressed', mode === healthFilterMode ? 'true' : 'false');
+    });
+  }
+
+  if (!healthFilterBanner) return;
+  if (healthFilterMode === 'all') {
+    healthFilterBanner.hidden = true;
+    return;
+  }
+
+  healthFilterBanner.hidden = false;
+  if (!healthFilterText) return;
+  const countSuffix = typeof visibleCount === 'number'
+    ? ` (${visibleCount} match${visibleCount === 1 ? '' : 'es'})`
+    : '';
+  healthFilterText.textContent = `${healthFilterLabel(healthFilterMode)} filter active${countSuffix}.`;
+}
+
+function setHealthFilter(mode) {
+  const next = ['all', 'weak', 'reused', 'old'].includes(String(mode || '')) ? String(mode) : 'all';
+  if (next === healthFilterMode) return;
+  healthFilterMode = next;
+  renderTable();
 }
 
 function formatDateTime(value) {
@@ -1144,6 +1219,7 @@ function openBackupModal(triggerElement = null) {
 
 function renderTable() {
   const visible = filteredItems();
+  renderHealthFilterUi(visible.length);
 
   if (visible.length === 0) {
     tableBody.innerHTML = '';
@@ -1151,6 +1227,8 @@ function renderTable() {
 
     if (items.length === 0) {
       emptyState.textContent = 'No saved passwords yet. Add your first credential to get started.';
+    } else if (healthFilterMode !== 'all') {
+      emptyState.textContent = `No matches found for ${healthFilterLabel(healthFilterMode)}. Clear the filter to view all entries.`;
     } else {
       emptyState.textContent = 'No matches found. Try another search term.';
     }
@@ -1905,6 +1983,16 @@ searchInput?.addEventListener('input', renderTable);
 favoriteFilter?.addEventListener('change', renderTable);
 folderFilter?.addEventListener('change', renderTable);
 sortFilter?.addEventListener('change', renderTable);
+healthPanel?.addEventListener('click', (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-health-filter]');
+  if (!(button instanceof HTMLButtonElement)) return;
+  setHealthFilter(button.dataset.healthFilter || 'all');
+});
+healthFilterClearBtn?.addEventListener('click', () => {
+  setHealthFilter('all');
+});
 themeToggle?.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
   const next = current === 'dark' ? 'light' : 'dark';
