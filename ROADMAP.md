@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **97%** (Phases 1-3 complete; Phase 4 complete; Phase 5 PWA enhancements in progress; Phase 7 extension test-matrix execution pending)
+Project Progress: **98%** (Phases 1-3 complete; Phase 4 complete; Phase 5 PWA enhancements in progress; Phase 7 extension test-matrix execution pending)
 
 Last updated: 2026-03-05
 Owner: VaultPass core team
@@ -153,7 +153,7 @@ Objective: Deliver premium mobile usage experience.
 
 Scope:
 - ✅ Progressive Web App enhancements (static precache expansions + online/offline status UX).
-- Offline-friendly encrypted cache strategy.
+- ✅ Offline-friendly encrypted cache strategy (opt-in encrypted snapshot cache for client-encrypted items).
 - Push notifications for security events (if infra supports it).
 - Native wrapper feasibility (future autofill API support).
 

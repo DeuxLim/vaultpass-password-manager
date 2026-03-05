@@ -391,6 +391,23 @@
         </div>
       </section>
 
+      <section class="offline-cache-panel">
+        <div class="twofa-header">
+          <div>
+            <p class="session-entry-title">Offline encrypted cache (PWA)</p>
+            <p id="offlineCacheStatus" class="session-entry-meta">Disabled.</p>
+          </div>
+          <div class="twofa-actions">
+            <label class="toggle-row" for="offlineCacheToggle">
+              <input type="checkbox" id="offlineCacheToggle">
+              Enable
+            </label>
+            <button type="button" id="offlineCacheClearBtn" class="btn btn-ghost">Clear</button>
+          </div>
+        </div>
+        <p class="session-entry-meta">Stores only client-encrypted vault data on this device (requires zero-knowledge mode + passphrase). Vault API responses are still not cached by the service worker.</p>
+      </section>
+
       <div id="sessionsList" class="sessions-list"></div>
       <section class="events-panel">
         <div class="events-header">

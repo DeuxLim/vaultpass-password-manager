@@ -38,6 +38,9 @@ const twofaUri = document.getElementById('twofaUri');
 const twofaRecoveryCodes = document.getElementById('twofaRecoveryCodes');
 const twofaVerifyCode = document.getElementById('twofaVerifyCode');
 const twofaConfirmEnableBtn = document.getElementById('twofaConfirmEnableBtn');
+const offlineCacheStatus = document.getElementById('offlineCacheStatus');
+const offlineCacheToggle = document.getElementById('offlineCacheToggle');
+const offlineCacheClearBtn = document.getElementById('offlineCacheClearBtn');
 const backupModal = document.getElementById('backupModal');
 const backupCloseBtn = document.getElementById('backupCloseBtn');
 const backupError = document.getElementById('backupError');
@@ -172,6 +175,10 @@ let emergencyApproved = [];
 const ZK_ENVELOPE_PREFIX = 'zkv1:';
 const ZK_PASSPHRASE_SESSION_KEY = 'vaultpass_zk_passphrase';
 const ZK_PBKDF2_ITERATIONS = 210000;
+const OFFLINE_CACHE_DB_NAME = 'vaultpass_offline_cache';
+const OFFLINE_CACHE_DB_VERSION = 1;
+const OFFLINE_CACHE_STORE = 'vault_items';
+const OFFLINE_CACHE_PREF_KEY = 'vaultpass_offline_cache_enabled';
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
@@ -234,12 +241,120 @@ function renderNetworkBanner() {
   }
 
   const online = navigator.onLine;
+  const cacheEnabled = offlineCacheEnabled();
   if (online) {
-    networkBannerText.textContent = 'Online. Changes will sync normally.';
+    networkBannerText.textContent = cacheEnabled
+      ? 'Online. Offline encrypted cache is enabled.'
+      : 'Online. Changes will sync normally.';
   } else {
-    networkBannerText.textContent = 'Offline. VaultPass does not cache vault API responses offline for security.';
+    networkBannerText.textContent = cacheEnabled
+      ? 'Offline. Attempting to use encrypted offline cache (if available).'
+      : 'Offline. VaultPass does not cache vault API responses offline for security.';
   }
   networkBanner.hidden = false;
+}
+
+function offlineCacheEnabled() {
+  return window.localStorage.getItem(OFFLINE_CACHE_PREF_KEY) === 'true';
+}
+
+function setOfflineCacheEnabled(value) {
+  window.localStorage.setItem(OFFLINE_CACHE_PREF_KEY, value ? 'true' : 'false');
+}
+
+function offlineDb() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(OFFLINE_CACHE_DB_NAME, OFFLINE_CACHE_DB_VERSION);
+    request.onupgradeneeded = () => {
+      const db = request.result;
+      if (!db.objectStoreNames.contains(OFFLINE_CACHE_STORE)) {
+        db.createObjectStore(OFFLINE_CACHE_STORE, { keyPath: 'key' });
+      }
+    };
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function offlineCacheGet() {
+  const db = await offlineDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_CACHE_STORE, 'readonly');
+    const store = tx.objectStore(OFFLINE_CACHE_STORE);
+    const req = store.get('latest');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function offlineCacheSet(itemsSnapshot) {
+  const db = await offlineDb();
+  const payload = {
+    key: 'latest',
+    saved_at: new Date().toISOString(),
+    items: Array.isArray(itemsSnapshot) ? itemsSnapshot : [],
+  };
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(OFFLINE_CACHE_STORE);
+    const req = store.put(payload);
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+async function offlineCacheClear() {
+  const db = await offlineDb();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction(OFFLINE_CACHE_STORE, 'readwrite');
+    const store = tx.objectStore(OFFLINE_CACHE_STORE);
+    const req = store.delete('latest');
+    req.onsuccess = () => resolve(true);
+    req.onerror = () => reject(req.error);
+  });
+}
+
+function itemContainsClientEncryptedData(item) {
+  return isZkEnvelope(item?.username) || isZkEnvelope(item?.password) || isZkEnvelope(item?.notes);
+}
+
+function updateOfflineCacheStatus(message) {
+  if (!offlineCacheStatus) return;
+  offlineCacheStatus.textContent = String(message || '').trim();
+}
+
+function syncOfflineCacheUi() {
+  if (offlineCacheToggle) {
+    offlineCacheToggle.checked = offlineCacheEnabled();
+    offlineCacheToggle.disabled = !featureFlags.zeroKnowledgeClientEncryption;
+  }
+  if (offlineCacheClearBtn) {
+    offlineCacheClearBtn.disabled = !offlineCacheEnabled();
+  }
+
+  if (!featureFlags.zeroKnowledgeClientEncryption) {
+    updateOfflineCacheStatus('Unavailable (enable zero-knowledge mode).');
+    return;
+  }
+
+  updateOfflineCacheStatus(offlineCacheEnabled() ? 'Enabled.' : 'Disabled.');
+}
+
+async function maybeWriteOfflineCache(incomingItems) {
+  if (!offlineCacheEnabled()) return;
+  if (!featureFlags.zeroKnowledgeClientEncryption) return;
+  const hasEncrypted = Array.isArray(incomingItems) && incomingItems.some(itemContainsClientEncryptedData);
+  if (!hasEncrypted) {
+    updateOfflineCacheStatus('Enabled (no encrypted items yet).');
+    return;
+  }
+
+  try {
+    await offlineCacheSet(incomingItems);
+    updateOfflineCacheStatus('Enabled (encrypted snapshot saved).');
+  } catch (_error) {
+    updateOfflineCacheStatus('Enabled (unable to save snapshot on this browser).');
+  }
 }
 
 function isZkEnvelope(value) {
@@ -417,10 +532,6 @@ async function decryptClientValue(value, passphrase) {
   const key = await deriveZkKey(passphrase, salt);
   const plainBuffer = await window.crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
   return new TextDecoder().decode(plainBuffer);
-}
-
-function itemContainsClientEncryptedData(item) {
-  return isZkEnvelope(item?.username) || isZkEnvelope(item?.password) || isZkEnvelope(item?.notes);
 }
 
 async function decryptItemsIfNeeded(sourceItems) {
@@ -1454,6 +1565,7 @@ async function openSessionsModal(triggerElement = null) {
   sessionsError.textContent = '';
   sessionsReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
   sessionsModal.showModal();
+  syncOfflineCacheUi();
 
   try {
     await Promise.all([loadSessions(), loadTwoFactorStatus(), loadSecurityEvents()]);
@@ -1650,13 +1762,39 @@ async function loadSession() {
 }
 
 async function loadItems() {
-  const data = await requestApi('../api/vault/list.php', 'GET');
-  const incoming = Array.isArray(data.items) ? data.items : [];
-  items = await decryptItemsIfNeeded(incoming);
-  populateFolderFilter();
-  renderHealthSummary();
-  renderHealthInsights();
-  renderTable();
+  try {
+    const data = await requestApi('../api/vault/list.php', 'GET');
+    const incoming = Array.isArray(data.items) ? data.items : [];
+    await maybeWriteOfflineCache(incoming);
+    items = await decryptItemsIfNeeded(incoming);
+    populateFolderFilter();
+    renderHealthSummary();
+    renderHealthInsights();
+    renderTable();
+  } catch (error) {
+    if (!offlineCacheEnabled() || !featureFlags.zeroKnowledgeClientEncryption) {
+      throw error;
+    }
+
+    let cached = null;
+    try {
+      cached = await offlineCacheGet();
+    } catch (_cacheError) {
+      cached = null;
+    }
+
+    if (!cached || !Array.isArray(cached.items) || cached.items.length === 0) {
+      throw error;
+    }
+
+    updateOfflineCacheStatus(`Enabled (using cached snapshot from ${formatDateTime(cached.saved_at || '')}).`);
+    items = await decryptItemsIfNeeded(cached.items);
+    populateFolderFilter();
+    renderHealthSummary();
+    renderHealthInsights();
+    renderTable();
+    showToast('Loaded encrypted offline cache (may be stale).', 'error');
+  }
 }
 
 function renderSharedVaults() {
@@ -2448,6 +2586,31 @@ networkBannerDismissBtn?.addEventListener('click', () => {
 
 window.addEventListener('online', renderNetworkBanner);
 window.addEventListener('offline', renderNetworkBanner);
+
+offlineCacheToggle?.addEventListener('change', async () => {
+  setOfflineCacheEnabled(Boolean(offlineCacheToggle.checked));
+  syncOfflineCacheUi();
+  renderNetworkBanner();
+
+  if (offlineCacheEnabled()) {
+    try {
+      await maybeWriteOfflineCache(items);
+    } catch (_error) {
+      // best-effort
+    }
+  }
+});
+
+offlineCacheClearBtn?.addEventListener('click', async () => {
+  try {
+    await offlineCacheClear();
+    showToast('Offline cache cleared.');
+  } catch (_error) {
+    showToast('Unable to clear offline cache.', 'error');
+  } finally {
+    syncOfflineCacheUi();
+  }
+});
 
 modal?.addEventListener('close', () => {
   if (modalReturnFocus instanceof HTMLElement) {

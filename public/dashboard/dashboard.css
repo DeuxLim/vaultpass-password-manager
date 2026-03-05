@@ -770,6 +770,7 @@ td.actions button[data-action="edit"]:hover,
 .session-entry,
 .backup-block,
 .twofa-panel,
+.offline-cache-panel,
 .events-panel,
 .event-item {
   border: 1px solid var(--line);
@@ -807,6 +808,22 @@ td.actions button[data-action="edit"]:hover,
 .session-status.is-active { color: var(--success); }
 .session-status.is-revoked { color: var(--danger); }
 .twofa-actions { display: flex; gap: 8px; }
+.toggle-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-soft);
+  font-size: 12px;
+  color: var(--muted);
+}
+.toggle-row input {
+  width: 16px;
+  height: 16px;
+}
 .twofa-setup-panel { display: grid; gap: 8px; }
 .twofa-secret {
   display: block;
