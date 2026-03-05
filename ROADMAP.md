@@ -172,6 +172,7 @@ Scope:
 - Product analytics (privacy-preserving).
 - ✅ Incident response runbooks and backups (`docs/incident-response-runbook.md`, `docs/backup-restore-runbook.md`, `scripts/backup-db.sh`, `scripts/restore-db.sh`).
 - ✅ Release management and changelog discipline (`docs/release-process.md`, `CHANGELOG.md`).
+- ✅ Local + production deployment guides (local, Vercel + Render) (`docs/setup-local.md`, `docs/deployment-vercel-render.md`).
 
 Exit criteria:
 - Launch checklist complete.

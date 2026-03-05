@@ -1,11 +1,27 @@
-# VaultPass (Vanilla MVP)
+# VaultPass
 
-VaultPass is a vanilla stack MVP:
+VaultPass is a lightweight password manager built on a vanilla stack:
 - Frontend: HTML, CSS, JavaScript
 - Backend: PHP (no framework)
 - Database: MySQL
 
-## Secure Before Pushing to GitHub
+## Quick Links
+
+- Local setup: `docs/setup-local.md`
+- Production deployment (Vercel + Render): `docs/deployment-vercel-render.md`
+- Production readiness: `docs/production-readiness-checklist.md`
+- Launch checklist: `docs/launch-readiness-checklist.md`
+
+## Production (Vercel + Render)
+
+Recommended setup for a user-friendly production experience:
+- Vercel serves the web UI (`public/`)
+- Vercel proxies `/api/*` to a Render backend (same-origin UX for cookies/CSRF)
+- MySQL hosted separately (managed preferred) or self-hosted (ops burden)
+
+Details: `docs/deployment-vercel-render.md`
+
+## Secure Before Sharing/Deploying
 
 Do this before your first push:
 
@@ -30,7 +46,7 @@ Expected: no real secrets in tracked files.
 - `config/` - app config
 - `sql/` - schema
 
-## Environment Setup
+## Environment Setup (Local)
 
 Copy and edit:
 

@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: vaultpass-web
+    env: docker
+    plan: starter
+    autoDeploy: true
+    healthCheckPath: /api/auth/session.php
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: SESSION_COOKIE_SECURE
+        value: "true"
+      - key: SESSION_SAMESITE
+        value: Lax
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASS
+        sync: false
+      - key: APP_KEY
+        sync: false
+
