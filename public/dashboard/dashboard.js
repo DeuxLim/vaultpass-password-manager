@@ -1457,7 +1457,7 @@ function renderSharedMembers() {
           </select>
           <button type="button" class="btn btn-ghost" data-action="shared-member-update-role" data-user-id="${member.user_id}">Update Role</button>
         `
-      : '<p class="shared-vault-meta">Owner</p>';
+      : (role === 'owner' ? '<p class="shared-vault-meta">Owner</p>' : '');
     const removeLabel = isCurrentUser ? 'Leave' : 'Remove';
 
     return `
@@ -1498,7 +1498,11 @@ async function createSharedVault() {
   }
 
   await csrfReady;
-  await requestApi('../api/shared-vault/create.php', 'POST', { name });
+  const created = await requestApi('../api/shared-vault/create.php', 'POST', { name });
+  const createdId = Number(created?.shared_vault?.id || 0);
+  if (createdId) {
+    selectedSharedVaultId = createdId;
+  }
   if (sharedVaultNameInput) sharedVaultNameInput.value = '';
   await loadSharedVaults();
   await loadSharedMembers();
@@ -1734,23 +1738,27 @@ function renderEmergencyAccess() {
 
   if (emergencyRequests.length > 0) {
     emergencyRequestsEmpty.style.display = 'none';
-    emergencyRequestsList.innerHTML = emergencyRequests.map((request) => `
-      <article class="shared-vault-row">
-        <div>
-          <p class="shared-vault-name">${escapeHtml(request.owner_name)} ⇄ ${escapeHtml(request.requester_name)}</p>
-          <p class="shared-vault-meta">
-            Status: ${emergencyStatusBadge(request.status)} ·
-            Requested: ${escapeHtml(formatDateTime(request.requested_at))}
-            ${request.expires_at ? ` · Expires: ${escapeHtml(formatDateTime(request.expires_at))}` : ''}
-          </p>
-        </div>
-        <div class="shared-vault-actions">
-          ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-primary" data-action="emergency-approve-request" data-request-id="${request.id}">Approve</button>` : ''}
-          ${request.is_incoming_for_owner && request.status === 'pending' ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-deny-request" data-request-id="${request.id}">Deny</button>` : ''}
-          ${request.is_outgoing_for_requester && request.status === 'pending' ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-cancel-request" data-request-id="${request.id}">Cancel</button>` : ''}
-        </div>
-      </article>
-    `).join('');
+    emergencyRequestsList.innerHTML = emergencyRequests.map((request) => {
+      const status = String(request.status || '').toLowerCase();
+      const isPending = status === 'pending';
+      return `
+        <article class="shared-vault-row">
+          <div>
+            <p class="shared-vault-name">${escapeHtml(request.owner_name)} ⇄ ${escapeHtml(request.requester_name)}</p>
+            <p class="shared-vault-meta">
+              Status: ${emergencyStatusBadge(status)} ·
+              Requested: ${escapeHtml(formatDateTime(request.requested_at))}
+              ${request.expires_at ? ` · Expires: ${escapeHtml(formatDateTime(request.expires_at))}` : ''}
+            </p>
+          </div>
+          <div class="shared-vault-actions">
+            ${request.is_incoming_for_owner && isPending ? `<button type="button" class="btn btn-primary" data-action="emergency-approve-request" data-request-id="${request.id}">Approve</button>` : ''}
+            ${request.is_incoming_for_owner && isPending ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-deny-request" data-request-id="${request.id}">Deny</button>` : ''}
+            ${request.is_outgoing_for_requester && isPending ? `<button type="button" class="btn btn-ghost danger" data-action="emergency-cancel-request" data-request-id="${request.id}">Cancel</button>` : ''}
+          </div>
+        </article>
+      `;
+    }).join('');
   } else {
     setEmergencyEmptyState(emergencyRequestsEmpty, emergencyRequestsList, false, 'No emergency access requests.');
   }
