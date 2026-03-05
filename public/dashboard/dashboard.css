@@ -288,6 +288,79 @@ h1 {
   color: var(--muted);
 }
 
+.health-insights {
+  margin: 0 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--surface);
+  padding: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.health-insights-head h2 {
+  margin: 0;
+  font-size: 16px;
+  letter-spacing: -0.02em;
+}
+
+.health-insights-body {
+  display: grid;
+  gap: 10px;
+}
+
+.health-insight-row {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-muted);
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+}
+
+.health-insight-title {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.health-insight-title strong {
+  font-size: 13px;
+}
+
+.health-insight-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.health-insight-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.health-insight-actions .btn {
+  min-height: 40px;
+}
+
+.health-insight-sites {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.health-site-pill {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
 .shared-vaults-panel {
   padding: 14px;
   display: grid;

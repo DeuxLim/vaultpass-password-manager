@@ -104,6 +104,8 @@ const healthPanel = document.getElementById('healthPanel');
 const healthFilterBanner = document.getElementById('healthFilterBanner');
 const healthFilterText = document.getElementById('healthFilterText');
 const healthFilterClearBtn = document.getElementById('healthFilterClearBtn');
+const healthInsights = document.getElementById('healthInsights');
+const healthInsightsBody = document.getElementById('healthInsightsBody');
 const sharedVaultForm = document.getElementById('sharedVaultForm');
 const sharedVaultNameInput = document.getElementById('sharedVaultNameInput');
 const sharedVaultError = document.getElementById('sharedVaultError');
@@ -502,6 +504,81 @@ function isOldItem(item, thresholdDays = HEALTH_OLD_THRESHOLD_DAYS) {
   if (Number.isNaN(updatedAt)) return false;
   const ageDays = (Date.now() - updatedAt) / (1000 * 60 * 60 * 24);
   return ageDays >= thresholdDays;
+}
+
+function summarizeSites(sourceItems, maxItems = 4) {
+  const output = [];
+  for (const item of sourceItems) {
+    const label = String(item?.site || '').trim();
+    if (!label) continue;
+    output.push(label);
+    if (output.length >= maxItems) break;
+  }
+  return output;
+}
+
+function renderHealthInsights() {
+  if (!healthInsights || !healthInsightsBody) return;
+
+  const loginItems = items.filter((item) => isLoginItem(item));
+  const weakItems = loginItems.filter((item) => scorePassword(item.password) < HEALTH_WEAK_SCORE_THRESHOLD);
+  const oldItems = loginItems.filter((item) => isOldItem(item));
+
+  const passwordCounts = buildPasswordCounts(loginItems);
+  const reusedItems = loginItems.filter((item) => {
+    const value = String(item.password || '');
+    if (!value) return false;
+    return (passwordCounts.get(value) || 0) > 1;
+  });
+
+  const insights = [
+    {
+      key: 'weak',
+      title: 'Weak passwords',
+      count: weakItems.length,
+      tip: 'Open each entry and generate a stronger password (16+ chars recommended).',
+      sites: summarizeSites(weakItems),
+    },
+    {
+      key: 'reused',
+      title: 'Reused passwords',
+      count: reusedItems.length,
+      tip: 'Change reused passwords on important sites first (email, banking, workplace).',
+      sites: summarizeSites(reusedItems),
+    },
+    {
+      key: 'old',
+      title: `Old passwords (>${HEALTH_OLD_THRESHOLD_DAYS} days)`,
+      count: oldItems.length,
+      tip: 'Rotate passwords periodically, especially for high-value accounts.',
+      sites: summarizeSites(oldItems),
+    },
+  ];
+
+  const hasAny = insights.some((insight) => insight.count > 0);
+  healthInsights.hidden = !hasAny;
+  if (!hasAny) {
+    healthInsightsBody.innerHTML = '';
+    return;
+  }
+
+  healthInsightsBody.innerHTML = insights.map((insight) => {
+    if (insight.count === 0) return '';
+    const sitePills = insight.sites.map((site) => `<span class="health-site-pill">${escapeHtml(site)}</span>`).join('');
+    return `
+      <article class="health-insight-row">
+        <div class="health-insight-title">
+          <strong>${escapeHtml(insight.title)}</strong>
+          <span class="health-site-pill">${insight.count} item${insight.count === 1 ? '' : 's'}</span>
+        </div>
+        <p class="health-insight-meta">${escapeHtml(insight.tip)}</p>
+        ${sitePills ? `<div class="health-insight-sites" aria-label="Example sites">${sitePills}</div>` : ''}
+        <div class="health-insight-actions">
+          <button type="button" class="btn btn-primary" data-action="health-review" data-health-mode="${escapeHtml(insight.key)}">Review</button>
+        </div>
+      </article>
+    `;
+  }).join('');
 }
 
 function healthFilterLabel(mode) {
@@ -1557,6 +1634,7 @@ async function loadItems() {
   items = await decryptItemsIfNeeded(incoming);
   populateFolderFilter();
   renderHealthSummary();
+  renderHealthInsights();
   renderTable();
 }
 
@@ -2161,6 +2239,18 @@ healthPanel?.addEventListener('click', (e) => {
 });
 healthFilterClearBtn?.addEventListener('click', () => {
   setHealthFilter('all');
+});
+healthInsightsBody?.addEventListener('click', (e) => {
+  const target = e.target;
+  if (!(target instanceof HTMLElement)) return;
+  const button = target.closest('button[data-action="health-review"]');
+  if (!(button instanceof HTMLButtonElement)) return;
+  const mode = String(button.dataset.healthMode || 'all');
+  setHealthFilter(mode);
+  window.setTimeout(() => {
+    searchInput?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    searchInput?.focus();
+  }, 0);
 });
 themeToggle?.addEventListener('click', () => {
   const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
