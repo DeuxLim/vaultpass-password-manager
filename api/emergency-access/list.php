@@ -68,6 +68,7 @@ $requestsStmt = $pdo->prepare(
         r.requested_at,
         r.decided_at,
         r.expires_at,
+        g.wait_period_hours,
         g.owner_user_id,
         g.grantee_user_id,
         owner.email AS owner_email,
@@ -119,6 +120,18 @@ $grantsReceived = array_map(static function (array $row): array {
 $requests = array_map(static function (array $row) use ($userId): array {
     $ownerId = (int)$row['owner_user_id'];
     $requesterId = (int)$row['requester_user_id'];
+    $waitHours = max(1, (int)($row['wait_period_hours'] ?? 0));
+    $availableAt = null;
+    $isActive = false;
+    if ($row['decided_at'] !== null) {
+        $availableAt = gmdate('Y-m-d H:i:s', strtotime((string)$row['decided_at']) + ($waitHours * 3600));
+        $status = strtolower(trim((string)($row['status'] ?? '')));
+        $expiresAtTs = $row['expires_at'] ? strtotime((string)$row['expires_at']) : null;
+        $now = time();
+        $isActive = $status === 'approved'
+            && $now >= strtotime($availableAt)
+            && ($expiresAtTs === null || $expiresAtTs > $now);
+    }
     return [
         'id' => (int)$row['id'],
         'grant_id' => (int)$row['grant_id'],
@@ -126,6 +139,7 @@ $requests = array_map(static function (array $row) use ($userId): array {
         'status' => (string)$row['status'],
         'requested_at' => (string)$row['requested_at'],
         'decided_at' => $row['decided_at'] ? (string)$row['decided_at'] : null,
+        'available_at' => $availableAt,
         'expires_at' => $row['expires_at'] ? (string)$row['expires_at'] : null,
         'owner_user_id' => $ownerId,
         'grantee_user_id' => (int)$row['grantee_user_id'],
@@ -135,6 +149,7 @@ $requests = array_map(static function (array $row) use ($userId): array {
         'requester_email' => (string)$row['requester_email'],
         'is_incoming_for_owner' => $ownerId === $userId,
         'is_outgoing_for_requester' => $requesterId === $userId,
+        'is_active' => $isActive,
     ];
 }, $requestRows);
 

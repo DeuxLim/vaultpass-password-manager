@@ -28,7 +28,9 @@ $requestStmt = $pdo->prepare(
         r.grant_id,
         r.requester_user_id,
         r.status,
+        r.decided_at,
         r.expires_at,
+        g.wait_period_hours,
         g.owner_user_id,
         owner.name AS owner_name,
         owner.email AS owner_email
@@ -49,6 +51,19 @@ if ((int)$request['requester_user_id'] !== $userId) {
 }
 if ((string)$request['status'] !== 'approved') {
     json_response(['ok' => false, 'error' => 'Emergency request is not approved'], 409);
+}
+if ($request['decided_at'] === null) {
+    json_response(['ok' => false, 'error' => 'Emergency request is missing approval timestamp'], 409);
+}
+
+$waitHours = max(1, (int)($request['wait_period_hours'] ?? 0));
+$availableAtTs = strtotime((string)$request['decided_at']) + ($waitHours * 3600);
+if (time() < $availableAtTs) {
+    json_response([
+        'ok' => false,
+        'error' => 'Emergency access is not active yet. Wait period is still running.',
+        'available_at' => gmdate('Y-m-d H:i:s', $availableAtTs),
+    ], 425);
 }
 if ($request['expires_at'] !== null && strtotime((string)$request['expires_at']) <= time()) {
     json_response(['ok' => false, 'error' => 'Emergency access window has expired'], 410);
@@ -106,6 +121,7 @@ json_response([
         'owner_user_id' => $ownerUserId,
         'owner_name' => (string)$request['owner_name'],
         'owner_email' => (string)$request['owner_email'],
+        'available_at' => gmdate('Y-m-d H:i:s', $availableAtTs),
         'expires_at' => $request['expires_at'] ? (string)$request['expires_at'] : null,
     ],
     'items' => $items,

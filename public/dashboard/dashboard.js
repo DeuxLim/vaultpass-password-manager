@@ -1819,14 +1819,18 @@ function renderEmergencyAccess() {
     emergencyRequestsList.innerHTML = emergencyRequests.map((request) => {
       const status = String(request.status || '').toLowerCase();
       const isPending = status === 'pending';
+      const availableAt = request.available_at ? ` · Activates: ${escapeHtml(formatDateTime(request.available_at))}` : '';
+      const expiresAt = request.expires_at ? ` · Expires: ${escapeHtml(formatDateTime(request.expires_at))}` : '';
+      const statusLine = status === 'approved' && request.available_at
+        ? `Status: ${emergencyStatusBadge(status)}${request.is_active ? ' · Active' : ' · Waiting'}`
+        : `Status: ${emergencyStatusBadge(status)}`;
       return `
         <article class="shared-vault-row">
           <div>
             <p class="shared-vault-name">${escapeHtml(request.owner_name)} ⇄ ${escapeHtml(request.requester_name)}</p>
             <p class="shared-vault-meta">
-              Status: ${emergencyStatusBadge(status)} ·
-              Requested: ${escapeHtml(formatDateTime(request.requested_at))}
-              ${request.expires_at ? ` · Expires: ${escapeHtml(formatDateTime(request.expires_at))}` : ''}
+              ${statusLine} ·
+              Requested: ${escapeHtml(formatDateTime(request.requested_at))}${availableAt}${expiresAt}
             </p>
           </div>
           <div class="shared-vault-actions">
@@ -1847,7 +1851,7 @@ function renderEmergencyAccess() {
       <article class="shared-vault-row">
         <div>
           <p class="shared-vault-name">${escapeHtml(entry.owner_name)} (${escapeHtml(entry.owner_email)})</p>
-          <p class="shared-vault-meta">Approved: ${escapeHtml(formatDateTime(entry.decided_at || entry.requested_at))} · Expires: ${escapeHtml(formatDateTime(entry.expires_at || 'not set'))}</p>
+          <p class="shared-vault-meta">Active · Expires: ${escapeHtml(formatDateTime(entry.expires_at || 'not set'))}</p>
         </div>
         <div class="shared-vault-actions">
           <button type="button" class="btn btn-primary" data-action="emergency-open-snapshot" data-request-id="${entry.request_id}">Open Snapshot</button>
@@ -1886,7 +1890,10 @@ async function openEmergencySnapshot(requestId) {
     const data = await requestApi(`../api/emergency-access/items.php?request_id=${requestId}`, 'GET');
     const request = data?.request || {};
     const items = Array.isArray(data?.items) ? data.items : [];
-    emergencySnapshotMeta.textContent = `${request.owner_name || 'Owner'} · expires ${formatDateTime(request.expires_at || '')}`;
+    const metaParts = [`${request.owner_name || 'Owner'}`];
+    if (request.available_at) metaParts.push(`active since ${formatDateTime(request.available_at)}`);
+    if (request.expires_at) metaParts.push(`expires ${formatDateTime(request.expires_at)}`);
+    emergencySnapshotMeta.textContent = metaParts.join(' · ');
 
     if (items.length === 0) {
       emergencySnapshotList.innerHTML = '<p class="history-empty">No vault items available.</p>';
@@ -1905,7 +1912,11 @@ async function openEmergencySnapshot(requestId) {
       </article>
     `).join('');
   } catch (error) {
-    emergencySnapshotError.textContent = error.message || 'Unable to load emergency snapshot.';
+    if (error?.status === 425 && error?.payload?.available_at) {
+      emergencySnapshotError.textContent = `Emergency access is not active yet. Available at ${formatDateTime(error.payload.available_at)}.`;
+    } else {
+      emergencySnapshotError.textContent = error.message || 'Unable to load emergency snapshot.';
+    }
     emergencySnapshotList.innerHTML = '';
   }
 }

@@ -27,6 +27,8 @@ if (!in_array($action, ['approve', 'deny'], true)) {
     json_response(['ok' => false, 'error' => 'Action must be approve or deny'], 422);
 }
 
+$ACCESS_WINDOW_HOURS = 24;
+
 $pdo = db();
 $stmt = $pdo->prepare(
     'SELECT
@@ -64,12 +66,13 @@ try {
     $expiresAt = null;
     if ($action === 'approve') {
         $waitHours = max(1, (int)$request['wait_period_hours']);
-        $expiresAt = gmdate('Y-m-d H:i:s', time() + ($waitHours * 3600));
+        $availableAt = time() + ($waitHours * 3600);
+        $expiresAt = gmdate('Y-m-d H:i:s', $availableAt + ($ACCESS_WINDOW_HOURS * 3600));
     }
 
     $updateStmt = $pdo->prepare(
         'UPDATE emergency_access_requests
-         SET status = :status,
+        SET status = :status,
              decided_at = CURRENT_TIMESTAMP,
              decision_by_user_id = :decision_by_user_id,
              expires_at = :expires_at
@@ -96,6 +99,7 @@ audit_log('emergency_access.decide', $userId, [
     'action' => $action,
     'status' => $nextStatus,
     'expires_at' => $expiresAt,
+    'access_window_hours' => $ACCESS_WINDOW_HOURS,
 ]);
 
 json_response([

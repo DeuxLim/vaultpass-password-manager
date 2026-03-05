@@ -23,6 +23,7 @@ $stmt = $pdo->prepare(
         r.requested_at,
         r.decided_at,
         r.expires_at,
+        g.wait_period_hours,
         g.owner_user_id,
         owner.name AS owner_name,
         owner.email AS owner_email
@@ -31,13 +32,21 @@ $stmt = $pdo->prepare(
      INNER JOIN users owner ON owner.id = g.owner_user_id
      WHERE r.requester_user_id = :user_id
        AND r.status = \'approved\'
-       AND (r.expires_at IS NULL OR r.expires_at > CURRENT_TIMESTAMP)
+       AND r.decided_at IS NOT NULL
+       AND DATE_ADD(r.decided_at, INTERVAL g.wait_period_hours HOUR) <= CURRENT_TIMESTAMP
+       AND r.expires_at IS NOT NULL
+       AND r.expires_at > CURRENT_TIMESTAMP
      ORDER BY r.decided_at DESC, r.id DESC'
 );
 $stmt->execute(['user_id' => $userId]);
 $rows = $stmt->fetchAll();
 
 $approved = array_map(static function (array $row): array {
+    $availableAt = '';
+    if ($row['decided_at'] !== null) {
+        $waitHours = max(1, (int)($row['wait_period_hours'] ?? 0));
+        $availableAt = gmdate('Y-m-d H:i:s', strtotime((string)$row['decided_at']) + ($waitHours * 3600));
+    }
     return [
         'request_id' => (int)$row['request_id'],
         'grant_id' => (int)$row['grant_id'],
@@ -46,6 +55,7 @@ $approved = array_map(static function (array $row): array {
         'owner_email' => (string)$row['owner_email'],
         'requested_at' => (string)$row['requested_at'],
         'decided_at' => (string)($row['decided_at'] ?? ''),
+        'available_at' => $availableAt,
         'expires_at' => $row['expires_at'] ? (string)$row['expires_at'] : null,
     ];
 }, $rows);

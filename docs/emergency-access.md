@@ -13,7 +13,8 @@ Emergency Access allows a user (owner) to designate a trusted contact (grantee) 
 - Grantee can request emergency access against an enabled grant.
 - Grantee can cancel their own pending emergency request.
 - Owner can approve or deny a pending request.
-- Approval records an expiration timestamp based on the configured wait period.
+- Approval starts a wait period timer (`wait_period_hours`) before access becomes active.
+- When the wait period elapses, a 24-hour access window becomes active (enforced via `expires_at`).
 
 ## API Endpoints
 
