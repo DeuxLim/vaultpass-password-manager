@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **94%** (Phases 1-3 complete; Phase 4 shared-vault + emergency access UX polish in progress; Phase 7 extension test-matrix execution pending)
+Project Progress: **95%** (Phases 1-3 complete; Phase 4 shared-vault + emergency access UX polish in progress; Phase 7 extension test-matrix execution pending)
 
 Last updated: 2026-03-05
 Owner: VaultPass core team
@@ -138,7 +138,7 @@ Scope:
 - ✅ Shared vault and emergency-access final UX polish and edge-case handling (dashboard edge cases + status normalization).
 - ✅ Emergency access workflow (time-delayed activation + active-window enforcement).
 - ✅ Password health dashboard (weak/reused/old) with click-to-filter views.
-- Breach monitoring integration (optional external API).
+- ✅ Breach monitoring integration (optional external API) via HIBP Pwned Passwords range checks.
 - ✅ Identity and payment profile autofill (web forms) via structured vault item types + copy-to-clipboard actions.
 - ✅ Passkeys/WebAuthn support roadmap kickoff (`docs/passkeys-webauthn-roadmap.md`).
 

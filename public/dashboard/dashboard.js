@@ -730,6 +730,7 @@ function renderItemActions(item) {
       : `
           <button type="button" data-action="copy-user" data-id="${item.id}" class="action-secondary" aria-label="Copy username for ${siteLabel}">Copy User</button>
           <button type="button" data-action="copy-pass" data-id="${item.id}" class="action-secondary" aria-label="Copy password for ${siteLabel}">Copy Pass</button>
+          <button type="button" data-action="breach-check" data-id="${item.id}" class="action-neutral" aria-label="Check password breach status for ${siteLabel}">Breach</button>
         `;
   const writeButtons = canWrite
     ? `
@@ -2605,6 +2606,26 @@ async function handleVaultAction(target) {
     await requestApi('../api/vault/delete.php', 'POST', { id });
     await loadItems();
     showToast(`Deleted entry for ${item.site}.`);
+    return;
+  }
+
+  if (action === 'breach-check') {
+    if (normalizeItemType(item.item_type) !== 'login') {
+      showToast('Breach monitoring is only available for login entries.', 'error');
+      return;
+    }
+    try {
+      await csrfReady;
+      const data = await requestApi('../api/breach/check-password.php', 'POST', { id });
+      const count = Number(data?.pwned_count || 0);
+      if (count > 0) {
+        showToast(`Password appears in breaches (${count} times). Change it now.`, 'error');
+      } else {
+        showToast('No breach matches found for this password.');
+      }
+    } catch (error) {
+      showToast(error.message || 'Unable to check breach status.', 'error');
+    }
   }
 }
 
