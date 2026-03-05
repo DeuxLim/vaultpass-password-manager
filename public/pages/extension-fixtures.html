@@ -141,6 +141,31 @@
       container.append(userLabel, passLabel);
     }
 
+    function attachSubmitLogging(form, spec, label = '') {
+      const submit = document.createElement('button');
+      submit.type = 'submit';
+      submit.textContent = label ? `Submit ${label}` : 'Submit Fixture Form';
+      form.append(submit);
+
+      if (spec.duplicateSubmit) {
+        const submitTwice = document.createElement('button');
+        submitTwice.type = 'button';
+        submitTwice.textContent = 'Submit Twice Quickly';
+        submitTwice.addEventListener('click', () => {
+          form.requestSubmit();
+          setTimeout(() => form.requestSubmit(), 40);
+        });
+        form.append(submitTwice);
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const data = new FormData(form);
+        const out = Object.fromEntries(data.entries());
+        console.log(`fixture ${spec.id} submit`, form.id || '(no id)', out);
+      });
+    }
+
     function buildFixtureCard(spec) {
       const template = document.getElementById('fixtureTemplate');
       const node = template.content.firstElementChild.cloneNode(true);
@@ -148,6 +173,7 @@
       node.querySelector('small').textContent = spec.note;
       const form = node.querySelector('form');
       form.id = `fixture-form-${spec.id}`;
+      const forms = [form];
 
       if (spec.badge) {
         const badge = document.createElement('small');
@@ -179,27 +205,31 @@
         const wrap = document.createElement('div');
         wrap.className = 'inline';
 
-        const searchForm = document.createElement('div');
-        const searchStack = formShell();
-        const searchLabel = document.createElement('label');
-        searchLabel.textContent = 'Search';
-        const searchInput = document.createElement('input');
-        searchInput.type = 'text';
-        searchInput.name = 'q';
-        searchLabel.append(searchInput);
-        searchStack.append(searchLabel);
-        searchForm.append(searchStack);
-
-        const loginFormWrap = document.createElement('div');
-        const loginStack = formShell();
-        appendLoginFields(loginStack, {
-          user: { type: 'email', name: 'dual_email' },
-          pass: { name: 'dual_pass' },
+        const loginA = form;
+        loginA.id = `fixture-form-${spec.id}-a`;
+        loginA.replaceChildren();
+        const aTitle = document.createElement('small');
+        aTitle.textContent = 'Login Form A (click inside before Fill)';
+        loginA.append(aTitle);
+        appendLoginFields(loginA, {
+          user: { type: 'email', name: 'dual_a_email' },
+          pass: { name: 'dual_a_pass' },
         });
-        loginFormWrap.append(loginStack);
 
-        wrap.append(searchForm, loginFormWrap);
-        form.append(wrap);
+        const loginB = document.createElement('form');
+        loginB.noValidate = true;
+        loginB.id = `fixture-form-${spec.id}-b`;
+        const bTitle = document.createElement('small');
+        bTitle.textContent = 'Login Form B (click inside before Fill)';
+        loginB.append(bTitle);
+        appendLoginFields(loginB, {
+          user: { type: 'email', name: 'dual_b_email' },
+          pass: { name: 'dual_b_pass' },
+        });
+
+        forms.push(loginB);
+        wrap.append(loginA, loginB);
+        node.append(wrap);
       } else if (spec.nested) {
         const outer = document.createElement('div');
         const inner = formShell();
@@ -220,27 +250,9 @@
         form.append(otp);
       }
 
-      const submit = document.createElement('button');
-      submit.type = 'submit';
-      submit.textContent = 'Submit Fixture Form';
-      form.append(submit);
-
-      if (spec.duplicateSubmit) {
-        const submitTwice = document.createElement('button');
-        submitTwice.type = 'button';
-        submitTwice.textContent = 'Submit Twice Quickly';
-        submitTwice.addEventListener('click', () => {
-          form.requestSubmit();
-          setTimeout(() => form.requestSubmit(), 40);
-        });
-        form.append(submitTwice);
-      }
-
-      form.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const data = new FormData(form);
-        const out = Object.fromEntries(data.entries());
-        console.log(`fixture ${spec.id} submit`, out);
+      forms.forEach((targetForm, index) => {
+        const label = spec.dual ? `Fixture Form ${index === 0 ? 'A' : 'B'}` : '';
+        attachSubmitLogging(targetForm, spec, label);
       });
 
       if (spec.dynamic) {

@@ -245,9 +245,13 @@ function renderPrompt(credentials) {
   if (!matchedCredentials.length) return;
 
   ensurePrompt();
-  selectElement.innerHTML = matchedCredentials
-    .map((item) => `<option value="${item.id}">${item.site} | ${item.username}</option>`)
-    .join('');
+  selectElement.innerHTML = '';
+  matchedCredentials.forEach((item) => {
+    const option = document.createElement('option');
+    option.value = String(item.id);
+    option.textContent = `${item.site} | ${item.username}`;
+    selectElement.append(option);
+  });
   setStatus(`${matchedCredentials.length} match${matchedCredentials.length === 1 ? '' : 'es'} found`);
 }
 
@@ -344,6 +348,10 @@ function watchDomForForms() {
     mutations.forEach((mutation) => {
       mutation.addedNodes.forEach((node) => {
         if (!(node instanceof HTMLElement)) return;
+        const closestForm = node.closest('form');
+        if (closestForm) {
+          bindForms(closestForm);
+        }
         if (node.tagName === 'FORM') {
           bindForms(node);
           return;
