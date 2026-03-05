@@ -18,7 +18,7 @@ Last updated: 2026-02-23
 - [ ] Backup and restore test completed with production-like dataset (`docs/backup-restore-runbook.md`).
 
 ## Database & Operations
-- [ ] All SQL migrations applied (001-012).
+- [ ] All SQL migrations applied (001-013).
 - [ ] Daily backup schedule configured and test restore successful.
 - [ ] Error log rotation configured and retention policy documented.
 - [ ] Incident contacts and on-call rotation documented.

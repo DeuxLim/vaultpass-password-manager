@@ -9,6 +9,7 @@ VaultPass does not yet include billing enforcement in code. This document descri
 
 - Stripe is a strong default for subscriptions and webhooks.
 - Alternative providers (Paddle/Lemon Squeezy) are also viable; keep the internal model provider-agnostic.
+  - Stripe setup: `docs/billing-stripe.md`
 
 ## Architecture
 
@@ -53,4 +54,3 @@ Table: `user_entitlements`
    - update `user_entitlements`
 5. Add a “Billing portal” link for self-serve changes/cancellation.
 6. Add support playbooks for failed payments and refunds.
-

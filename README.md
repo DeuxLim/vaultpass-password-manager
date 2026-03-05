@@ -181,6 +181,12 @@ If you already created the database before analytics event storage was added, ru
 mysql -u root -p < sql/migrations/012_add_analytics_events.sql
 ```
 
+If you already created the database before plan entitlement storage was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/013_add_user_entitlements.sql
+```
+
 2. Run app:
 
 ```bash

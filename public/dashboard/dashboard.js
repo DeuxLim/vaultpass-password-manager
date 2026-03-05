@@ -10,6 +10,7 @@ const analyticsToggle = document.getElementById('analyticsToggle');
 const addItemBtn = document.getElementById('addItemBtn');
 const backupBtn = document.getElementById('backupBtn');
 const securityBtn = document.getElementById('securityBtn');
+const billingBtn = document.getElementById('billingBtn');
 const logoutBtn = document.getElementById('logoutBtn');
 const modal = document.getElementById('vaultModal');
 const modalTitle = document.getElementById('modalTitle');
@@ -47,6 +48,12 @@ const pushToggle = document.getElementById('pushToggle');
 const pushTestHintBtn = document.getElementById('pushTestHintBtn');
 const backupModal = document.getElementById('backupModal');
 const backupCloseBtn = document.getElementById('backupCloseBtn');
+const billingModal = document.getElementById('billingModal');
+const billingCloseBtn = document.getElementById('billingCloseBtn');
+const billingStatusText = document.getElementById('billingStatusText');
+const billingError = document.getElementById('billingError');
+const upgradePlusBtn = document.getElementById('upgradePlusBtn');
+const upgradeFamilyBtn = document.getElementById('upgradeFamilyBtn');
 const backupError = document.getElementById('backupError');
 const exportPassphrase = document.getElementById('exportPassphrase');
 const runExportBtn = document.getElementById('runExportBtn');
@@ -2444,6 +2451,37 @@ async function openEmergencySnapshot(requestId) {
   }
 }
 
+async function loadBillingStatus() {
+  if (billingError) billingError.textContent = '';
+  if (billingStatusText) billingStatusText.textContent = 'Loading…';
+  const data = await requestApi('../api/billing/status.php', 'GET');
+  if (!data?.enabled) {
+    if (billingStatusText) billingStatusText.textContent = 'Free (billing disabled in this deployment)';
+    return;
+  }
+
+  const ent = data.entitlement || {};
+  const plan = String(ent.plan || 'free');
+  const status = String(ent.status || 'active');
+  const periodEnd = ent.current_period_end ? ` · renews ${formatDateTime(ent.current_period_end)}` : '';
+  if (billingStatusText) billingStatusText.textContent = `${plan} · ${status}${periodEnd}`;
+}
+
+async function openBillingModal(triggerEl) {
+  if (!billingModal) return;
+  await loadBillingStatus();
+  billingModal.showModal();
+  if (triggerEl instanceof HTMLElement) triggerEl.blur();
+}
+
+async function startCheckout(plan) {
+  await csrfReady;
+  const data = await requestApi('../api/billing/create-checkout.php', 'POST', { plan });
+  const url = String(data?.checkout_url || '');
+  if (!url) throw new Error('Checkout URL missing');
+  window.location.href = url;
+}
+
 async function createEmergencyGrant() {
   if (emergencyError) emergencyError.textContent = '';
   const email = String(emergencyGrantEmailInput?.value || '').trim();
@@ -2506,10 +2544,16 @@ securityBtn?.addEventListener('click', (e) => {
     sessionsError.textContent = error.message || 'Unable to load sessions.';
   });
 });
+billingBtn?.addEventListener('click', (e) => {
+  openBillingModal(e.currentTarget).catch((error) => {
+    if (billingError) billingError.textContent = error.message || 'Unable to load billing status.';
+  });
+});
 cancelBtn?.addEventListener('click', closeModal);
 historyCloseBtn?.addEventListener('click', closeHistoryModal);
 sessionsCloseBtn?.addEventListener('click', closeSessionsModal);
 backupCloseBtn?.addEventListener('click', closeBackupModal);
+billingCloseBtn?.addEventListener('click', () => billingModal?.close());
 emergencySnapshotCloseBtn?.addEventListener('click', () => {
   emergencySnapshotModal?.close();
 });
@@ -2746,6 +2790,23 @@ offlineCacheClearBtn?.addEventListener('click', async () => {
     showToast('Unable to clear offline cache.', 'error');
   } finally {
     syncOfflineCacheUi();
+  }
+});
+
+upgradePlusBtn?.addEventListener('click', async () => {
+  if (billingError) billingError.textContent = '';
+  try {
+    await startCheckout('plus');
+  } catch (error) {
+    if (billingError) billingError.textContent = error.message || 'Unable to start checkout.';
+  }
+});
+upgradeFamilyBtn?.addEventListener('click', async () => {
+  if (billingError) billingError.textContent = '';
+  try {
+    await startCheckout('family');
+  } catch (error) {
+    if (billingError) billingError.textContent = error.message || 'Unable to start checkout.';
   }
 });
 
@@ -3304,6 +3365,10 @@ sharedMemberList?.addEventListener('click', async (e) => {
     const ok = await loadSession();
     if (!ok) return;
     trackAnalyticsEvent('dashboard_view');
+    const params = new URLSearchParams(window.location.search || '');
+    if (params.get('billing') === 'success') {
+      showToast('Payment successful. Your plan will update shortly.');
+    }
     await loadItems();
     await loadSharedVaults();
     await loadSharedInvitations();

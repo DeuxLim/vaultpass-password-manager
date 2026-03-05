@@ -22,6 +22,7 @@
         <a href="#emergencyAccessPanel" class="nav-item">Emergency Access</a>
         <button type="button" id="backupBtn" class="nav-item">Import / Export</button>
         <button type="button" id="securityBtn" class="nav-item">Security</button>
+        <button type="button" id="billingBtn" class="nav-item">Plan</button>
       </nav>
       <div class="sidebar-footer">
         <button id="themeToggle" class="btn btn-ghost">Dark Mode</button>
@@ -489,6 +490,32 @@
 
       <menu>
         <button type="button" id="backupCloseBtn" class="btn btn-ghost">Close</button>
+      </menu>
+    </form>
+  </dialog>
+
+  <dialog id="billingModal" class="vault-modal backup-modal" aria-labelledby="billingTitle">
+    <form id="billingForm" method="dialog">
+      <h2 id="billingTitle">Plan</h2>
+      <p class="history-item-label">Manage your VaultPass plan.</p>
+      <p id="billingError" class="form-error" role="alert" aria-live="assertive"></p>
+
+      <section class="backup-block">
+        <h3>Current plan</h3>
+        <p id="billingStatusText" class="session-entry-meta">Loading…</p>
+      </section>
+
+      <section class="backup-block">
+        <h3>Upgrade</h3>
+        <p class="session-entry-meta">Billing may be disabled in this deployment until Stripe is configured.</p>
+        <div class="csv-actions">
+          <button type="button" id="upgradePlusBtn" class="btn btn-primary">Upgrade to Plus</button>
+          <button type="button" id="upgradeFamilyBtn" class="btn btn-ghost">Upgrade to Family</button>
+        </div>
+      </section>
+
+      <menu>
+        <button type="button" id="billingCloseBtn" class="btn btn-ghost">Close</button>
       </menu>
     </form>
   </dialog>
