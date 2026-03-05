@@ -1,10 +1,14 @@
-const CACHE_NAME = 'vaultpass-static-v1';
+const CACHE_NAME = 'vaultpass-static-v2';
 const OFFLINE_URL = '/pages/offline.html';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/pages/login.html',
   '/pages/offline.html',
+  '/pages/extension-fixtures.html',
+  '/dashboard/dashboard.html',
+  '/dashboard/dashboard.css',
+  '/dashboard/dashboard.js',
   '/styles/landing-apple.css',
   '/styles/login-apple.css',
   '/script/api.js',
@@ -43,6 +47,10 @@ self.addEventListener('fetch', (event) => {
         if (url.pathname.startsWith('/dashboard/')) {
           const fallback = await caches.match(OFFLINE_URL);
           return fallback || Response.error();
+        }
+        if (url.pathname === '/pages/extension-fixtures.html') {
+          const cached = await caches.match(request);
+          return cached || caches.match(OFFLINE_URL) || Response.error();
         }
         const cached = await caches.match(request);
         return cached || caches.match(OFFLINE_URL) || Response.error();

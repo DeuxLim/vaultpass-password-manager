@@ -163,6 +163,25 @@ body {
   box-shadow: var(--shadow);
 }
 
+.network-banner {
+  margin: 0 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  padding: 12px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.network-banner-text {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
+
 .headline-panel {
   padding: 20px;
   display: flex;

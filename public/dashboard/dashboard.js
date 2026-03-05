@@ -55,6 +55,9 @@ const csvMapNotes = document.getElementById('csvMapNotes');
 const csvImportMode = document.getElementById('csvImportMode');
 const runImportCsvBtn = document.getElementById('runImportCsvBtn');
 const toastRegion = document.getElementById('toastRegion');
+const networkBanner = document.getElementById('networkBanner');
+const networkBannerText = document.getElementById('networkBannerText');
+const networkBannerDismissBtn = document.getElementById('networkBannerDismissBtn');
 
 const vaultId = document.getElementById('vaultId');
 const siteInput = document.getElementById('siteInput');
@@ -141,6 +144,7 @@ const emergencySnapshotCloseBtn = document.getElementById('emergencySnapshotClos
 
 let items = [];
 let healthFilterMode = 'all';
+let networkBannerDismissed = false;
 let historyItemId = 0;
 let modalReturnFocus = null;
 let historyReturnFocus = null;
@@ -219,6 +223,23 @@ function showToast(message, type = 'success') {
   toastTimer = window.setTimeout(() => {
     toastRegion.classList.remove('is-visible');
   }, 2600);
+}
+
+function renderNetworkBanner() {
+  if (!networkBanner || !networkBannerText) return;
+
+  if (networkBannerDismissed) {
+    networkBanner.hidden = true;
+    return;
+  }
+
+  const online = navigator.onLine;
+  if (online) {
+    networkBannerText.textContent = 'Online. Changes will sync normally.';
+  } else {
+    networkBannerText.textContent = 'Offline. VaultPass does not cache vault API responses offline for security.';
+  }
+  networkBanner.hidden = false;
 }
 
 function isZkEnvelope(value) {
@@ -2420,6 +2441,14 @@ twofaDisableBtn?.addEventListener('click', async () => {
   }
 });
 
+networkBannerDismissBtn?.addEventListener('click', () => {
+  networkBannerDismissed = true;
+  renderNetworkBanner();
+});
+
+window.addEventListener('online', renderNetworkBanner);
+window.addEventListener('offline', renderNetworkBanner);
+
 modal?.addEventListener('close', () => {
   if (modalReturnFocus instanceof HTMLElement) {
     modalReturnFocus.focus();
@@ -2950,6 +2979,7 @@ sharedMemberList?.addEventListener('click', async (e) => {
 (async function init() {
   try {
     initTheme();
+    renderNetworkBanner();
     const ok = await loadSession();
     if (!ok) return;
     await loadItems();
