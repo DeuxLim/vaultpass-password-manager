@@ -1,6 +1,6 @@
 # VaultPass Product Roadmap
 
-Project Progress: **99%** (Phases 1-3 complete; Phase 4 complete; Phase 5 in progress (PWA + offline cache + push scaffold); Phase 7 extension test-matrix execution pending)
+Project Progress: **99%** (Phases 1-3 complete; Phase 4 complete; Phase 5 scope complete; Phase 5 mobile validation pending; Phase 7 extension test-matrix execution pending)
 
 Last updated: 2026-03-05
 Owner: VaultPass core team
@@ -158,8 +158,8 @@ Scope:
 - ✅ Native wrapper feasibility (future autofill API support) (`docs/native-wrapper-feasibility.md`).
 
 Exit criteria:
-- PWA install and core flows validated on iOS/Android browsers.
-- Mobile performance and accessibility targets met.
+- PWA install and core flows validated on iOS/Android browsers (checklist: `docs/pwa-validation-checklist.md`).
+- Mobile performance and accessibility targets met (checklist: `docs/pwa-validation-checklist.md`).
 
 ---
 
