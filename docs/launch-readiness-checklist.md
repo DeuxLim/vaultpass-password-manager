@@ -15,7 +15,7 @@ Last updated: 2026-02-23
 - [ ] HTTPS enforced at edge/reverse proxy.
 - [ ] Session cookie security flags validated in production.
 - [ ] OWASP ASVS checklist reviewed and signed off.
-- [ ] Backup and restore test completed with production-like dataset.
+- [ ] Backup and restore test completed with production-like dataset (`docs/backup-restore-runbook.md`).
 
 ## Database & Operations
 - [ ] All SQL migrations applied (001-011).

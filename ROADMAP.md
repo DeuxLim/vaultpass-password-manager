@@ -170,7 +170,7 @@ Scope:
 - Pricing tiers and billing integration.
 - Onboarding, email lifecycle, support workflows.
 - Product analytics (privacy-preserving).
-- Incident response runbooks and backups.
+- ✅ Incident response runbooks and backups (`docs/incident-response-runbook.md`, `docs/backup-restore-runbook.md`, `scripts/backup-db.sh`, `scripts/restore-db.sh`).
 - ✅ Release management and changelog discipline (`docs/release-process.md`, `CHANGELOG.md`).
 
 Exit criteria:
