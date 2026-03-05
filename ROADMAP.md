@@ -155,7 +155,7 @@ Scope:
 - ✅ Progressive Web App enhancements (static precache expansions + online/offline status UX).
 - ✅ Offline-friendly encrypted cache strategy (opt-in encrypted snapshot cache for client-encrypted items).
 - ✅ Push notifications scaffold (subscription capture + service worker handlers; delivery wiring pending).
-- Native wrapper feasibility (future autofill API support).
+- ✅ Native wrapper feasibility (future autofill API support) (`docs/native-wrapper-feasibility.md`).
 
 Exit criteria:
 - PWA install and core flows validated on iOS/Android browsers.
