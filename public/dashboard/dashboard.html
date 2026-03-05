@@ -408,6 +408,23 @@
         <p class="session-entry-meta">Stores only client-encrypted vault data on this device (requires zero-knowledge mode + passphrase). Vault API responses are still not cached by the service worker.</p>
       </section>
 
+      <section class="offline-cache-panel">
+        <div class="twofa-header">
+          <div>
+            <p class="session-entry-title">Push notifications (PWA)</p>
+            <p id="pushStatusText" class="session-entry-meta">Disabled.</p>
+          </div>
+          <div class="twofa-actions">
+            <label class="toggle-row" for="pushToggle">
+              <input type="checkbox" id="pushToggle">
+              Enable
+            </label>
+            <button type="button" id="pushTestHintBtn" class="btn btn-ghost">How it works</button>
+          </div>
+        </div>
+        <p class="session-entry-meta">Receive security-event alerts on this device (requires HTTPS and browser support). Delivery integration is scaffolded but may be disabled in this deployment.</p>
+      </section>
+
       <div id="sessionsList" class="sessions-list"></div>
       <section class="events-panel">
         <div class="events-header">

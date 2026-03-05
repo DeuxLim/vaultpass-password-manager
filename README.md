@@ -150,6 +150,12 @@ If you already created the database before zero-knowledge key material storage w
 mysql -u root -p < sql/migrations/007_add_user_key_material.sql
 ```
 
+If you already created the database before push subscription storage was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/011_add_push_subscriptions.sql
+```
+
 2. Run app:
 
 ```bash

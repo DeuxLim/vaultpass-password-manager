@@ -75,3 +75,43 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+self.addEventListener('push', (event) => {
+  const payload = (() => {
+    try {
+      return event.data?.json() || {};
+    } catch (_error) {
+      return {};
+    }
+  })();
+
+  const title = payload.title || 'VaultPass';
+  const options = {
+    body: payload.body || '',
+    icon: payload.icon || '/images/logo.png',
+    badge: payload.badge || '/images/logo.png',
+    data: payload.data || {},
+    tag: payload.tag || 'vaultpass',
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const targetUrl = event.notification?.data?.url || '/';
+
+  event.waitUntil((async () => {
+    const clientsList = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of clientsList) {
+      if ('focus' in client) {
+        await client.focus();
+        if ('navigate' in client) {
+          await client.navigate(targetUrl);
+        }
+        return;
+      }
+    }
+    await self.clients.openWindow(targetUrl);
+  })());
+});

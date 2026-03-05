@@ -41,6 +41,9 @@ const twofaConfirmEnableBtn = document.getElementById('twofaConfirmEnableBtn');
 const offlineCacheStatus = document.getElementById('offlineCacheStatus');
 const offlineCacheToggle = document.getElementById('offlineCacheToggle');
 const offlineCacheClearBtn = document.getElementById('offlineCacheClearBtn');
+const pushStatusText = document.getElementById('pushStatusText');
+const pushToggle = document.getElementById('pushToggle');
+const pushTestHintBtn = document.getElementById('pushTestHintBtn');
 const backupModal = document.getElementById('backupModal');
 const backupCloseBtn = document.getElementById('backupCloseBtn');
 const backupError = document.getElementById('backupError');
@@ -179,6 +182,7 @@ const OFFLINE_CACHE_DB_NAME = 'vaultpass_offline_cache';
 const OFFLINE_CACHE_DB_VERSION = 1;
 const OFFLINE_CACHE_STORE = 'vault_items';
 const OFFLINE_CACHE_PREF_KEY = 'vaultpass_offline_cache_enabled';
+const PUSH_PREF_KEY = 'vaultpass_push_enabled';
 
 const requestApi = window.VaultApi.apiRequest;
 const initCsrfApi = window.VaultApi.initCsrf;
@@ -355,6 +359,108 @@ async function maybeWriteOfflineCache(incomingItems) {
   } catch (_error) {
     updateOfflineCacheStatus('Enabled (unable to save snapshot on this browser).');
   }
+}
+
+function pushEnabledPref() {
+  return window.localStorage.getItem(PUSH_PREF_KEY) === 'true';
+}
+
+function setPushEnabledPref(value) {
+  window.localStorage.setItem(PUSH_PREF_KEY, value ? 'true' : 'false');
+}
+
+function urlBase64ToUint8Array(base64String) {
+  const padding = '='.repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+  const raw = window.atob(base64);
+  const output = new Uint8Array(raw.length);
+  for (let i = 0; i < raw.length; i += 1) {
+    output[i] = raw.charCodeAt(i);
+  }
+  return output;
+}
+
+async function pushSupported() {
+  return 'serviceWorker' in navigator && 'PushManager' in window;
+}
+
+async function syncPushUi(message = '') {
+  if (!pushStatusText) return;
+
+  const supported = await pushSupported();
+  if (!supported) {
+    pushStatusText.textContent = 'Unsupported by this browser.';
+    if (pushToggle) pushToggle.disabled = true;
+    return;
+  }
+
+  if (pushToggle) {
+    pushToggle.checked = pushEnabledPref();
+  }
+
+  pushStatusText.textContent = message || (pushEnabledPref() ? 'Enabled.' : 'Disabled.');
+}
+
+async function ensurePushSubscribed() {
+  await syncPushUi('Enabling…');
+
+  const supported = await pushSupported();
+  if (!supported) {
+    throw new Error('Push notifications are not supported in this browser.');
+  }
+
+  await csrfReady;
+  const status = await requestApi('../api/push/status.php', 'GET');
+  if (!status?.enabled) {
+    throw new Error('Push notifications are disabled on this server.');
+  }
+  if (!status?.available) {
+    throw new Error('Push subscription storage is unavailable (migration 011).');
+  }
+  const publicKey = String(status?.vapid_public_key || '').trim();
+  if (!publicKey) {
+    throw new Error('VAPID public key is not configured.');
+  }
+
+  const permission = await Notification.requestPermission();
+  if (permission !== 'granted') {
+    throw new Error('Notification permission was not granted.');
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(publicKey),
+  });
+
+  await requestApi('../api/push/subscribe.php', 'POST', { subscription });
+  setPushEnabledPref(true);
+  await syncPushUi('Enabled (subscribed).');
+}
+
+async function disablePushSubscription() {
+  await syncPushUi('Disabling…');
+
+  const supported = await pushSupported();
+  if (!supported) {
+    setPushEnabledPref(false);
+    await syncPushUi('Disabled.');
+    return;
+  }
+
+  const registration = await navigator.serviceWorker.ready;
+  const subscription = await registration.pushManager.getSubscription();
+  if (subscription) {
+    try {
+      await csrfReady;
+      await requestApi('../api/push/unsubscribe.php', 'POST', { endpoint: subscription.endpoint });
+    } catch (_error) {
+      // best-effort
+    }
+    await subscription.unsubscribe().catch(() => {});
+  }
+  setPushEnabledPref(false);
+  await syncPushUi('Disabled.');
 }
 
 function isZkEnvelope(value) {
@@ -1566,6 +1672,7 @@ async function openSessionsModal(triggerElement = null) {
   sessionsReturnFocus = triggerElement instanceof HTMLElement ? triggerElement : document.activeElement;
   sessionsModal.showModal();
   syncOfflineCacheUi();
+  await syncPushUi();
 
   try {
     await Promise.all([loadSessions(), loadTwoFactorStatus(), loadSecurityEvents()]);
@@ -2610,6 +2717,26 @@ offlineCacheClearBtn?.addEventListener('click', async () => {
   } finally {
     syncOfflineCacheUi();
   }
+});
+
+pushToggle?.addEventListener('change', async () => {
+  if (!pushToggle.checked) {
+    await disablePushSubscription();
+    return;
+  }
+
+  try {
+    await ensurePushSubscribed();
+  } catch (error) {
+    setPushEnabledPref(false);
+    if (pushToggle) pushToggle.checked = false;
+    await syncPushUi(error.message || 'Unable to enable push notifications.');
+    showToast(error.message || 'Unable to enable push notifications.', 'error');
+  }
+});
+
+pushTestHintBtn?.addEventListener('click', () => {
+  showToast('Push delivery is scaffolded. Subscription is stored, but sending alerts requires server delivery wiring.', 'error');
 });
 
 modal?.addEventListener('close', () => {
