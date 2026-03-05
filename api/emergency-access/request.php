@@ -74,6 +74,26 @@ audit_log('emergency_access.request', $userId, [
     'owner_user_id' => (int)$grant['owner_user_id'],
 ]);
 
+$ownerStmt = $pdo->prepare('SELECT id, name, email FROM users WHERE id = :id LIMIT 1');
+$ownerStmt->execute(['id' => (int)$grant['owner_user_id']]);
+$owner = $ownerStmt->fetch();
+$requesterStmt = $pdo->prepare('SELECT id, name, email FROM users WHERE id = :id LIMIT 1');
+$requesterStmt->execute(['id' => $userId]);
+$requester = $requesterStmt->fetch();
+
+if ($owner && $requester) {
+    $dashboardUrl = app_public_url() . '/dashboard/dashboard.html';
+    $waitHours = (int)($grant['wait_period_hours'] ?? 0);
+    $subject = 'VaultPass: Emergency access requested';
+    $requesterName = (string)($requester['name'] ?? 'A user');
+    $html = '<p>An emergency access request was created.</p>'
+        . '<p><strong>Requester:</strong> ' . htmlspecialchars($requesterName, ENT_QUOTES, 'UTF-8') . '</p>'
+        . '<p><strong>Wait period:</strong> ' . $waitHours . ' hour(s)</p>'
+        . '<p><a href="' . htmlspecialchars($dashboardUrl, ENT_QUOTES, 'UTF-8') . '">Review in VaultPass</a></p>';
+    $text = "An emergency access request was created.\nRequester: {$requesterName}\nWait period: {$waitHours} hour(s)\nReview: {$dashboardUrl}\n";
+    send_email_best_effort((string)$owner['email'], $subject, $html, $text);
+}
+
 json_response([
     'ok' => true,
     'request' => [

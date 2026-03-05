@@ -56,6 +56,13 @@ if ($targetUserId === $userId) {
     json_response(['ok' => false, 'error' => 'You cannot invite yourself'], 422);
 }
 
+$vaultStmt = $pdo->prepare('SELECT id, name FROM shared_vaults WHERE id = :id LIMIT 1');
+$vaultStmt->execute(['id' => $vaultId]);
+$vault = $vaultStmt->fetch();
+if (!$vault) {
+    json_response(['ok' => false, 'error' => 'Shared vault not found'], 404);
+}
+
 $existingStmt = $pdo->prepare(
     'SELECT id, role, invitation_status
      FROM shared_vault_members
@@ -108,6 +115,15 @@ audit_log('shared_vault.invite', $userId, [
     'target_email' => $email,
     'role' => $role,
 ]);
+
+$inviteUrl = app_public_url() . '/dashboard/dashboard.html';
+$vaultName = (string)($vault['name'] ?? 'Shared vault');
+$subject = 'VaultPass: You were invited to a shared vault';
+$html = '<p>You have a new shared vault invitation in VaultPass.</p>'
+    . '<p><strong>Vault:</strong> ' . htmlspecialchars($vaultName, ENT_QUOTES, 'UTF-8') . '</p>'
+    . '<p><a href="' . htmlspecialchars($inviteUrl, ENT_QUOTES, 'UTF-8') . '">Open VaultPass</a></p>';
+$text = "You have a new shared vault invitation in VaultPass.\nVault: {$vaultName}\nOpen: {$inviteUrl}\n";
+send_email_best_effort((string)$targetUser['email'], $subject, $html, $text);
 
 json_response([
     'ok' => true,

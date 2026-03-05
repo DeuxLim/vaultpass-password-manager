@@ -56,7 +56,7 @@ After deploy, apply schema/migrations to the production database:
 In Vercel:
 1. Import this repo
 2. Set **Output Directory** to `public`
-3. Add a rewrite so `/api/*` is proxied to the Render backend:
+3. Add a rewrite so `/api/*` is proxied to the Render backend (either in Vercel project settings, or by editing `vercel.json`):
 
 Example rewrite rule:
 - Source: `/api/:path*`
@@ -74,4 +74,3 @@ Also ensure the Vercel origin is the one you share with users.
 - Verify session revoke + 2FA flows on production-like data.
 - Run the launch checklist: `docs/launch-readiness-checklist.md`.
 - Run a restore drill: `docs/backup-restore-runbook.md`.
-

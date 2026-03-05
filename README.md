@@ -9,6 +9,7 @@ VaultPass is a lightweight password manager built on a vanilla stack:
 
 - Local setup: `docs/setup-local.md`
 - Production deployment (Vercel + Render): `docs/deployment-vercel-render.md`
+- Email (Resend): `docs/email-resend.md`
 - Production readiness: `docs/production-readiness-checklist.md`
 - Launch checklist: `docs/launch-readiness-checklist.md`
 

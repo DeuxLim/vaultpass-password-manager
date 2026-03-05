@@ -14,4 +14,10 @@ return [
     'push_notifications_enabled' => in_array(strtolower(trim((string)(getenv('PUSH_NOTIFICATIONS_ENABLED') ?: 'false'))), ['1', 'true', 'yes', 'y'], true),
     'vapid_public_key' => getenv('VAPID_PUBLIC_KEY') ?: '',
     'vapid_private_key' => getenv('VAPID_PRIVATE_KEY') ?: '',
+    'email_enabled' => in_array(strtolower(trim((string)(getenv('EMAIL_ENABLED') ?: 'false'))), ['1', 'true', 'yes', 'y'], true),
+    'email_provider' => getenv('EMAIL_PROVIDER') ?: 'resend',
+    'resend_api_key' => getenv('RESEND_API_KEY') ?: '',
+    'email_from' => getenv('EMAIL_FROM') ?: '',
+    'email_from_name' => getenv('EMAIL_FROM_NAME') ?: 'VaultPass',
+    'app_public_url' => getenv('APP_PUBLIC_URL') ?: 'http://localhost:8000',
 ];

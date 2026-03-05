@@ -16,6 +16,7 @@ require_once __DIR__ . '/two_factor.php';
 require_once __DIR__ . '/validators.php';
 require_once __DIR__ . '/breach_monitor.php';
 require_once __DIR__ . '/push.php';
+require_once __DIR__ . '/email.php';
 require_once __DIR__ . '/zero_knowledge.php';
 require_once __DIR__ . '/shared_vaults.php';
 

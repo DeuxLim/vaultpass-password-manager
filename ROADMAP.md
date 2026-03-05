@@ -168,7 +168,7 @@ Objective: Commercial readiness and operational maturity.
 
 Scope:
 - Pricing tiers and billing integration.
-- Onboarding, email lifecycle, support workflows.
+- ✅ Onboarding, email lifecycle, support workflows (`docs/onboarding-email-support.md`, `docs/support-workflow.md`, `docs/email-resend.md`).
 - Product analytics (privacy-preserving).
 - ✅ Incident response runbooks and backups (`docs/incident-response-runbook.md`, `docs/backup-restore-runbook.md`, `scripts/backup-db.sh`, `scripts/restore-db.sh`).
 - ✅ Release management and changelog discipline (`docs/release-process.md`, `CHANGELOG.md`).
