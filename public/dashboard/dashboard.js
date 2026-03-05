@@ -6,6 +6,7 @@ const favoriteFilter = document.getElementById('favoriteFilter');
 const folderFilter = document.getElementById('folderFilter');
 const sortFilter = document.getElementById('sortFilter');
 const themeToggle = document.getElementById('themeToggle');
+const analyticsToggle = document.getElementById('analyticsToggle');
 const addItemBtn = document.getElementById('addItemBtn');
 const backupBtn = document.getElementById('backupBtn');
 const securityBtn = document.getElementById('securityBtn');
@@ -151,6 +152,26 @@ const emergencySnapshotCloseBtn = document.getElementById('emergencySnapshotClos
 let items = [];
 let healthFilterMode = 'all';
 let networkBannerDismissed = false;
+
+const analyticsConsentKey = 'vaultpass_analytics_consent';
+function analyticsConsentEnabled() {
+  return window.localStorage.getItem(analyticsConsentKey) === 'true';
+}
+function setAnalyticsConsentEnabled(enabled) {
+  window.localStorage.setItem(analyticsConsentKey, enabled ? 'true' : 'false');
+}
+function syncAnalyticsToggle() {
+  if (!analyticsToggle) return;
+  analyticsToggle.textContent = `Usage Analytics: ${analyticsConsentEnabled() ? 'On' : 'Off'}`;
+}
+async function trackAnalyticsEvent(event, props = {}) {
+  if (!analyticsConsentEnabled()) return;
+  try {
+    await requestApi('../api/analytics/event.php', 'POST', { event, props });
+  } catch (_error) {
+    // best-effort
+  }
+}
 let historyItemId = 0;
 let modalReturnFocus = null;
 let historyReturnFocus = null;
@@ -2524,6 +2545,15 @@ themeToggle?.addEventListener('click', () => {
   applyTheme(next);
   window.localStorage.setItem('vaultpass_theme', next);
 });
+analyticsToggle?.addEventListener('click', () => {
+  const next = !analyticsConsentEnabled();
+  setAnalyticsConsentEnabled(next);
+  syncAnalyticsToggle();
+  showToast(next ? 'Usage analytics enabled.' : 'Usage analytics disabled.');
+  if (next) {
+    trackAnalyticsEvent('analytics_enabled');
+  }
+});
 passwordInput?.addEventListener('input', updatePasswordStrength);
 itemTypeInput?.addEventListener('change', () => {
   const nextType = normalizeItemType(itemTypeInput.value);
@@ -3269,9 +3299,11 @@ sharedMemberList?.addEventListener('click', async (e) => {
 (async function init() {
   try {
     initTheme();
+    syncAnalyticsToggle();
     renderNetworkBanner();
     const ok = await loadSession();
     if (!ok) return;
+    trackAnalyticsEvent('dashboard_view');
     await loadItems();
     await loadSharedVaults();
     await loadSharedInvitations();
