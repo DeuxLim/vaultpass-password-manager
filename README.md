@@ -175,6 +175,12 @@ If you already created the database before push subscription storage was added, 
 mysql -u root -p < sql/migrations/011_add_push_subscriptions.sql
 ```
 
+If you already created the database before analytics event storage was added, run:
+
+```bash
+mysql -u root -p < sql/migrations/012_add_analytics_events.sql
+```
+
 2. Run app:
 
 ```bash
