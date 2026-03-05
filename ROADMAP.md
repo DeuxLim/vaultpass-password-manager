@@ -340,6 +340,7 @@ Tasks:
 - ✅ Defined 20-case local acceptance matrix and fixture page.
 - ✅ Extension reliability hardening (dedupe repeated submit save prompts and popup action clicks).
 - ✅ Extension scriptability guardrails (clear unsupported-tab errors) + fixture duplicate-submit helper.
+- ✅ Popup helper to open local extension fixture page quickly.
 Acceptance:
 - ✅ Fixture coverage and extension logic updated for multi-form + dynamic injection cases.
 - ⬜ Manual execution: Save + autofill works on defined test matrix.

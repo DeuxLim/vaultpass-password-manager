@@ -6,6 +6,7 @@ const baseUrlInput = document.getElementById('baseUrlInput');
 const saveBaseUrlBtn = document.getElementById('saveBaseUrlBtn');
 const authStatus = document.getElementById('authStatus');
 const openLoginBtn = document.getElementById('openLoginBtn');
+const openFixturesBtn = document.getElementById('openFixturesBtn');
 const refreshBtn = document.getElementById('refreshBtn');
 const vaultPanel = document.getElementById('vaultPanel');
 const searchInput = document.getElementById('searchInput');
@@ -111,6 +112,7 @@ async function checkSessionAndLoad() {
   setError('');
   vaultPanel.hidden = true;
   openLoginBtn.hidden = true;
+  openFixturesBtn.hidden = true;
   refreshBtn.hidden = true;
   authStatus.textContent = 'Checking session...';
 
@@ -119,12 +121,14 @@ async function checkSessionAndLoad() {
     if (!session?.authenticated) {
       authStatus.textContent = 'Not logged in to VaultPass web app.';
       openLoginBtn.hidden = false;
+      openFixturesBtn.hidden = false;
       refreshBtn.hidden = false;
       return;
     }
 
     authStatus.textContent = `Signed in as ${session.user?.name || 'User'}`;
     refreshBtn.hidden = false;
+    openFixturesBtn.hidden = false;
 
     const data = await apiRequest('/api/vault/list.php', 'GET');
     items = Array.isArray(data.items) ? data.items : [];
@@ -216,6 +220,11 @@ saveBaseUrlBtn.addEventListener('click', async () => {
 
 openLoginBtn.addEventListener('click', async () => {
   await openLoginPage();
+});
+
+openFixturesBtn.addEventListener('click', async () => {
+  const baseUrl = await getBaseUrl();
+  await chrome.tabs.create({ url: `${baseUrl}/pages/extension-fixtures.html` });
 });
 
 refreshBtn.addEventListener('click', async () => {
